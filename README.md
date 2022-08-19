@@ -4,7 +4,7 @@
 
 Lite Framework, Easy Coding, High Performance, No Dependencies, Tested for Production
 
-## Features:
+## Features
 * **Lite with no dependencies**
     * The framework built using standard python libraries and does not need third party pre-requisites. All what you need is just to make sure your python supports SSL.
 * **Easy Code**
