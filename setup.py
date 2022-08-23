@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='liteapi',
-    version='1.0',
+    version='0.1',
     description='Lite python API framework',
     url='https://github.com/cpp-e/liteapi',
     author='Kamal Abdel Wahab',
