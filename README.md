@@ -16,14 +16,8 @@ Lite Framework, Easy Coding, High Performance, No Dependencies, Tested for Produ
 Python 3.7+ (built with SSL support)
 
 ## Installation
-1. Clone or Download the framework repository
-2. Run the command:
 ```bash
 pip install liteapi
-```
-    OR
-```bash
-python setup.py install
 ```
 
 ## Usage
