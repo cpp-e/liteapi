@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: liteapi
-Version: 0.1
+Version: 0.2
 Summary: Lite python API framework
 Author-email: Kamal Abdel Wahab <kamal.abdelwahab@gmail.com>
 License:                     GNU GENERAL PUBLIC LICENSE
@@ -679,10 +679,26 @@ License:                     GNU GENERAL PUBLIC LICENSE
         <https://www.gnu.org/licenses/why-not-lgpl.html>.
 Project-URL: Homepage, https://github.com/cpp-e/liteapi
 Project-URL: Bug Tracker, https://github.com/cpp-e/liteapi/issues
+Classifier: Development Status :: 3 - Alpha
+Classifier: Environment :: Web Environment
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3 :: Only
 Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
 Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
 Classifier: Operating System :: OS Independent
-Requires-Python: >=3.7
+Classifier: Topic :: Internet
+Classifier: Topic :: Internet :: WWW/HTTP
+Classifier: Topic :: Software Development
+Classifier: Topic :: Software Development :: Libraries
+Classifier: Topic :: Software Development :: Libraries :: Application Frameworks
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.6
 Description-Content-Type: text/markdown
 License-File: LICENSE
 
@@ -694,14 +710,14 @@ Lite Framework, Easy Coding, High Performance, No Dependencies, Tested for Produ
 
 ## Features
 * **Lite with no dependencies**
-    * The framework built using standard python libraries and does not need third party pre-requisites. All what you need is just to make sure your python supports SSL.
+    * The framework built using standard python libraries and does not need third party pre-requisites.
 * **Easy Code**
     * The framework designed to allow different levels of skillsets to use the code and learn it fast.
 * **Supported**
     * Our team is committed to review, test and resolve any issues related to the framework interactively. Please don’t hesitate to submit your problem in github’s issue section.
 
 ## Requirements
-Python 3.7+ (built with SSL support)
+Python 3.6+
 
 ## Installation
 ```bash
@@ -731,7 +747,7 @@ app = liteapi()
 ```
     Note: to change the socket binding you can pass an argument to liteapi as below
 ```python
-app = liteapi({'host': '0.0.0.0', 'port': 8080})
+app = liteapi(host='0.0.0.0', port=8080)
 ```
 * Register class for each URI (The class has to be subclass from BaseAPIRequest)
 ```python
