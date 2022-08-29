@@ -1,0 +1,35 @@
+RESPONSE_OK = 200
+
+# Client Errors
+UNAUTHORIZED = 401
+PAYMENT_REQUIRED = 402
+NOT_FOUND = 404
+METHOD_NOT_ALLOWED = 405
+REQUEST_TIMEOUT = 408
+UNSUPPORTED_MEDIA_TYPE = 415
+TOO_MANY_REQUESTS = 429
+UNAVAILABLE_FOR_LEGAL_REASONS = 451
+
+# Server Errors
+INTERNAL_SERVER_ERROR = 500
+NOT_IMPLEMENTED = 501
+HTTP_VERSION_NOT_SUPPORTED = 505
+INSUFFICIENT_STORAGE = 507
+
+_strerror = {
+    RESPONSE_OK: 'OK',
+    UNAUTHORIZED: 'Unauthorized',
+    PAYMENT_REQUIRED: 'Payment Required',
+    NOT_FOUND: 'Not Found',
+    METHOD_NOT_ALLOWED: 'Method Not Allowed',
+    REQUEST_TIMEOUT: 'Request Timeout',
+    UNSUPPORTED_MEDIA_TYPE: 'Unsupported Media Type',
+    TOO_MANY_REQUESTS: 'Too Many Requests',
+    UNAVAILABLE_FOR_LEGAL_REASONS: 'Unavailable For Legal Reasons',
+    INTERNAL_SERVER_ERROR: 'Internal Server Error',
+    NOT_IMPLEMENTED: 'Not Implemented',
+    HTTP_VERSION_NOT_SUPPORTED: 'HTTP Version Not Supported',
+    INSUFFICIENT_STORAGE: 'Insuffecient Storage'
+}
+
+strerror = lambda c : _strerror[c]

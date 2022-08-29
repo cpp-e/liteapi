@@ -6,14 +6,14 @@ Lite Framework, Easy Coding, High Performance, No Dependencies, Tested for Produ
 
 ## Features
 * **Lite with no dependencies**
-    * The framework built using standard python libraries and does not need third party pre-requisites. All what you need is just to make sure your python supports SSL.
+    * The framework built using standard python libraries and does not need third party pre-requisites.
 * **Easy Code**
     * The framework designed to allow different levels of skillsets to use the code and learn it fast.
 * **Supported**
     * Our team is committed to review, test and resolve any issues related to the framework interactively. Please don’t hesitate to submit your problem in github’s issue section.
 
 ## Requirements
-Python 3.7+ (built with SSL support)
+Python 3.6+
 
 ## Installation
 ```bash
@@ -43,7 +43,7 @@ app = liteapi()
 ```
     Note: to change the socket binding you can pass an argument to liteapi as below
 ```python
-app = liteapi({'host': '0.0.0.0', 'port': 8080})
+app = liteapi(host='0.0.0.0', port=8080)
 ```
 * Register class for each URI (The class has to be subclass from BaseAPIRequest)
 ```python
