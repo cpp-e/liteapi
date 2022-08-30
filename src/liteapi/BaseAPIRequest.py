@@ -3,6 +3,7 @@ class BaseAPIRequest:
     __request = None
     __response = None
     __methods = None
+    __methods_keys = None
     __uriVars = None
 
     @property
@@ -28,6 +29,10 @@ class BaseAPIRequest:
     def methods(self):
         return self.__methods
     
+    @property
+    def methods_keys(self):
+        return self.__methods_keys
+
     @property
     def vars(self):
         return self.__uriVars

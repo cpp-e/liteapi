@@ -39,7 +39,7 @@ class liteapi:
             def get(myself):
                 info = []
                 for regex in self._liteapi__request:
-                    info.append({'uri': self._liteapi__request[regex].definition, 'methods': self._liteapi__request[regex].methods})
+                    info.append({'uri': self._liteapi__request[regex]._BaseAPIRequest__definition, 'methods': self._liteapi__request[regex]._BaseAPIRequest__methods_keys})
                 return info
     def __del__(self):
         self.close()
@@ -75,15 +75,20 @@ class liteapi:
             requestClass._BaseAPIRequest__methods = {}
             requestClass._BaseAPIRequest__response = {'content-type': JSON_UTF8}
             requestClass._BaseAPIRequest__uriVars = {}
+            requestClass._BaseAPIRequest__methods_keys = []
 
             if 'DELETE' not in requestClass._BaseAPIRequest__methods and 'delete' in dir(requestClass):
                 requestClass._BaseAPIRequest__methods['DELETE'] = requestClass.delete
+                requestClass._BaseAPIRequest__methods_keys.append('DELETE')
             if 'GET' not in requestClass._BaseAPIRequest__methods and 'get' in dir(requestClass):
                 requestClass._BaseAPIRequest__methods['GET'] = requestClass.get
+                requestClass._BaseAPIRequest__methods_keys.append('GET')
             if 'POST' not in requestClass._BaseAPIRequest__methods and 'post' in dir(requestClass):
                 requestClass._BaseAPIRequest__methods['POST'] = requestClass.post
+                requestClass._BaseAPIRequest__methods_keys.append('POST')
             if 'PUT' not in requestClass._BaseAPIRequest__methods and 'put' in dir(requestClass):
                 requestClass._BaseAPIRequest__methods['PUT'] = requestClass.put
+                requestClass._BaseAPIRequest__methods_keys.append('PUT')
             
             ms = re.findall('\{(([^:}]+)(:(str|int))?)\}', regex)
             for m in ms:
@@ -137,14 +142,7 @@ class liteapi:
                     break
             if not found:
                 raise APIException(NOT_FOUND)
-        except APIException as e:
-            response_code = e.code
-            response_status = RETURN_STATUS(response_code)
             
-            response_data = json.dumps(RETURN_STATUS_OBJ(e.code))
-            
-            sock.sendall(response.format(response_status, len(response_data), 'content-type: {}\r\n'.format(JSON_UTF8), response_data).encode())
-        else:
             response_code = RESPONSE_OK
             response_status = RETURN_STATUS(response_code)
             copyRequest = self.__request[uriRegex]()
@@ -152,12 +150,26 @@ class liteapi:
 
             response_data_raw = copyRequest._BaseAPIRequest__methods[request.method](copyRequest, **vars)
 
-            if('json' in copyRequest.response['content-type'] and isinstance(response_data_raw, dict)):
+            if('json' in copyRequest.response['content-type'] and isinstance(response_data_raw, (dict, list, tuple))):
                 response_data = json.dumps(response_data_raw)
             else:
                 response_data = response_data_raw
-            sock.sendall(response.format(response_status, len(response_data), copyRequest.responseHeader, response_data).encode())
+            response_header = copyRequest.responseHeader
+            
+        except APIException as e:
+            response_code = e.code
+            response_status = RETURN_STATUS(response_code)
+            
+            response_data = json.dumps(RETURN_STATUS_OBJ(response_code))
+            response_header = 'content-type: {}\r\n'.format(JSON_UTF8)
+        except:
+            response_code = INTERNAL_SERVER_ERROR
+            response_status = RETURN_STATUS(INTERNAL_SERVER_ERROR)
+
+            response_data = json.dumps(RETURN_STATUS_OBJ(response_code))
+            response_header = 'content-type: {}\r\n'.format(JSON_UTF8)
         
+        sock.sendall(response.format(response_status, len(response_data), response_header, response_data).encode())
         response_time = round(time.time() - stime, 5)
         print("{} - Request from {}: {} {} {}, {}{}\033[0m, {}s".format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), addr[0], request.method, request.uri, request.version, '\033[92m' if response_code == RESPONSE_OK else '\033[91m',RETURN_STATUS(response_code), response_time))
         sock.shutdown(socket.SHUT_WR)
