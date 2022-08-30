@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: liteapi
-Version: 0.2
+Version: 0.2.1
 Summary: Lite python API framework
 Author-email: Kamal Abdel Wahab <kamal.abdelwahab@gmail.com>
 License:                     GNU GENERAL PUBLIC LICENSE
@@ -745,7 +745,7 @@ from liteapi import liteapi,BaseAPIRequest
 ```python
 app = liteapi()
 ```
-    Note: to change the socket binding you can pass an argument to liteapi as below
+    Note: to change the socket binding you can pass the host and port arguments to liteapi as below
 ```python
 app = liteapi(host='0.0.0.0', port=8080)
 ```
