@@ -1,8 +1,10 @@
 RESPONSE_OK = 200
 
 # Client Errors
+BAD_REQUEST = 400
 UNAUTHORIZED = 401
 PAYMENT_REQUIRED = 402
+FORBIDDEN = 403
 NOT_FOUND = 404
 METHOD_NOT_ALLOWED = 405
 REQUEST_TIMEOUT = 408
@@ -18,8 +20,10 @@ INSUFFICIENT_STORAGE = 507
 
 _strerror = {
     RESPONSE_OK: 'OK',
+    BAD_REQUEST: 'Bad Request',
     UNAUTHORIZED: 'Unauthorized',
     PAYMENT_REQUIRED: 'Payment Required',
+    FORBIDDEN: 'Forbidden',
     NOT_FOUND: 'Not Found',
     METHOD_NOT_ALLOWED: 'Method Not Allowed',
     REQUEST_TIMEOUT: 'Request Timeout',

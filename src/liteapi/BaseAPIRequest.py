@@ -13,22 +13,26 @@ class BaseAPIRequest:
     @property
     def request(self):
         return self.__request
-    
+
     @property
     def response(self):
         return self.__response
-    
+
     @property
     def responseHeader(self):
         header = ""
         for key in self.__response:
-            header = '{}{}: {}\r\n'.format(header, key, self.__response[key])
+            if isinstance(self.__response[key], str):
+                header += '{}: {}\r\n'.format(key, self.__response[key])
+            else:
+                for val in self.__response[key]:
+                    header += '{}: {}\r\n'.format(key, val)
         return header
 
     @property
     def methods(self):
         return self.__methods
-    
+
     @property
     def methods_keys(self):
         return self.__methods_keys
@@ -36,6 +40,6 @@ class BaseAPIRequest:
     @property
     def vars(self):
         return self.__uriVars
-    
+
     def __getitem__(self, k):
         return self.__request[k]

@@ -73,10 +73,12 @@ class liteapi:
             hasQuery = uri.find('?')
             regex = uri[:hasQuery] if hasQuery > 0 else uri
             requestClass._BaseAPIRequest__definition = re.sub(':(str|int)', '', regex)
-            requestClass._BaseAPIRequest__methods = {}
+            if not requestClass._BaseAPIRequest__methods:
+                requestClass._BaseAPIRequest__methods = {}
+            if not requestClass._BaseAPIRequest__methods_keys:
+                requestClass._BaseAPIRequest__methods_keys = []
             requestClass._BaseAPIRequest__response = {'content-type': JSON_UTF8}
             requestClass._BaseAPIRequest__uriVars = {}
-            requestClass._BaseAPIRequest__methods_keys = []
 
             if 'DELETE' not in requestClass._BaseAPIRequest__methods and 'delete' in dir(requestClass):
                 requestClass._BaseAPIRequest__methods['DELETE'] = requestClass.delete
@@ -123,6 +125,9 @@ class liteapi:
                     sleep(0.01)
                     stime =  time.time()
                     continue
+        if not request_data:
+            sock.close()
+            return
         request = http_request(request_data)
         try:
             if request.version != 'HTTP/1.1':
@@ -148,6 +153,7 @@ class liteapi:
             response_status = RETURN_STATUS(response_code)
             copyRequest = self.__request[uriRegex]()
             copyRequest._BaseAPIRequest__request = request
+            copyRequest.client_address = addr[0]
 
             response_data_raw = copyRequest._BaseAPIRequest__methods[request.method](copyRequest, **vars)
 
@@ -161,14 +167,15 @@ class liteapi:
             response_code = e.code
             response_status = RETURN_STATUS(response_code)
             
-            response_data = json.dumps(RETURN_STATUS_OBJ(response_code))
-            response_header = 'content-type: {}\r\n'.format(JSON_UTF8)
-        except:
+            response_data = json.dumps(e.response if e.response else RETURN_STATUS_OBJ(response_code))
+            response_header = e.responseHeader
+        except Exception as e:
             response_code = INTERNAL_SERVER_ERROR
             response_status = RETURN_STATUS(INTERNAL_SERVER_ERROR)
 
             response_data = json.dumps(RETURN_STATUS_OBJ(response_code))
             response_header = 'content-type: {}\r\n'.format(JSON_UTF8)
+            print(e)
         
         sock.sendall(response.format(response_status, len(response_data), response_header, response_data).encode())
         response_time = round(time.time() - stime, 5)
