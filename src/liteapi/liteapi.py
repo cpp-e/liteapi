@@ -15,7 +15,7 @@ class liteapi:
     class __version:
         MAJOR = 0
         MINOR = 3
-        PATCH = 0
+        PATCH = 1
         
         def __str__(self):
             return str("{}.{}.{}".format(self.MAJOR, self.MINOR, self.PATCH))
