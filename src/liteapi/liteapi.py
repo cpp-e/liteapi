@@ -1,10 +1,11 @@
 import re, socket, threading, signal, json, errno, time
 from time import sleep
 from datetime import datetime
-from .BaseAPIRequest import BaseAPIRequest
+from .BaseAPIRequest import BaseAPIRequest, APIMethod
 from .http_request import http_request
 from .errno import *
 from .exception import *
+from . import LITEAPI_SUPPORTED_REQUEST_METHODS
 
 RETURN_STATUS = lambda c : '{} {}'.format(c, strerror(c))
 RETURN_STATUS_OBJ = lambda c : {'code': c, 'message': strerror(c)}
@@ -24,7 +25,7 @@ class liteapi:
     def version():
         return liteapi.__version()
     
-    __supportedMethods = ['DELETE', 'GET', 'POST', 'PUT']
+    __supportedMethods = LITEAPI_SUPPORTED_REQUEST_METHODS
     __defaultConfig = {
         'host': '127.0.0.1',
         'port': 8000
@@ -80,18 +81,11 @@ class liteapi:
             requestClass._BaseAPIRequest__response = {'content-type': JSON_UTF8}
             requestClass._BaseAPIRequest__uriVars = {}
 
-            if 'DELETE' not in requestClass._BaseAPIRequest__methods and 'delete' in dir(requestClass):
-                requestClass._BaseAPIRequest__methods['DELETE'] = requestClass.delete
-                requestClass._BaseAPIRequest__methods_keys.append('DELETE')
-            if 'GET' not in requestClass._BaseAPIRequest__methods and 'get' in dir(requestClass):
-                requestClass._BaseAPIRequest__methods['GET'] = requestClass.get
-                requestClass._BaseAPIRequest__methods_keys.append('GET')
-            if 'POST' not in requestClass._BaseAPIRequest__methods and 'post' in dir(requestClass):
-                requestClass._BaseAPIRequest__methods['POST'] = requestClass.post
-                requestClass._BaseAPIRequest__methods_keys.append('POST')
-            if 'PUT' not in requestClass._BaseAPIRequest__methods and 'put' in dir(requestClass):
-                requestClass._BaseAPIRequest__methods['PUT'] = requestClass.put
-                requestClass._BaseAPIRequest__methods_keys.append('PUT')
+            for methodnam in LITEAPI_SUPPORTED_REQUEST_METHODS:
+                if methodnam.lower() in dir(requestClass):
+                    requestClass._BaseAPIRequest__methods[methodnam] = method = APIMethod.create(methodFunc=getattr(requestClass, methodnam.lower()))
+                    setattr(requestClass, methodnam.lower(), method)
+                    requestClass._BaseAPIRequest__methods_keys.append(methodnam)
             
             ms = re.findall('\{(([^:}]+)(:(str|int))?)\}', regex)
             for m in ms:
@@ -136,10 +130,10 @@ class liteapi:
                 raise APIException(METHOD_NOT_ALLOWED)
             found, uriRegex, vars = False, None, {}
             for uriRegex in self.__request:
-                ms = re.fullmatch(uriRegex, request.uri)
+                ms = re.fullmatch(uriRegex, request.base_uri)
                 if ms:
                     found = True
-                    if not request.method in self.__request[uriRegex]._BaseAPIRequest__methods:
+                    if not request.method in self.__request[uriRegex]._BaseAPIRequest__methods and (request.method == 'HEAD' and 'GET' not in self.__request[uriRegex]._BaseAPIRequest__methods):
                         raise APIException(NOT_IMPLEMENTED)
                     else:
                         for i in range(len(self.__request[uriRegex]._BaseAPIRequest__uriVars)):
@@ -155,7 +149,9 @@ class liteapi:
             copyRequest._BaseAPIRequest__request = request
             copyRequest.client_address = addr[0]
 
-            response_data_raw = copyRequest._BaseAPIRequest__methods[request.method](copyRequest, **vars)
+            request.parseData()
+            
+            response_data_raw = copyRequest._BaseAPIRequest__methods[request.method if request.method != 'HEAD' else 'GET'](copyRequest, **vars)
 
             if('json' in copyRequest.response['content-type'] and isinstance(response_data_raw, (dict, list, tuple))):
                 response_data = json.dumps(response_data_raw)
@@ -177,7 +173,7 @@ class liteapi:
             response_header = 'content-type: {}\r\n'.format(JSON_UTF8)
             print(e)
         
-        sock.sendall(response.format(response_status, len(response_data), response_header, response_data).encode())
+        sock.sendall(response.format(response_status, len(response_data), response_header, response_data if request.method != 'HEAD' else '').encode())
         response_time = round(time.time() - stime, 5)
         print("{} - Request from {}: {} {} {}, {}{}\033[0m, {}s".format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), addr[0], request.method, request.uri, request.version, '\033[92m' if response_code == RESPONSE_OK else '\033[91m',RETURN_STATUS(response_code), response_time))
         sock.shutdown(socket.SHUT_WR)

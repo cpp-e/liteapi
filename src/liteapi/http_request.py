@@ -37,7 +37,8 @@ class http_request:
         self.__data = request_data[i+2:]
 
         hasQuery = uri.find('?')
-        self.__uri = uri[:hasQuery] if hasQuery > 0 else uri
+        self.__base_uri = uri[:hasQuery] if hasQuery > 0 else uri
+        self.__uri = uri
 
         if hasQuery > 0:
             qs = uri[hasQuery+1:].split('&')
@@ -56,6 +57,15 @@ class http_request:
                     self.__query_str[var].append(val)
                 else:
                     self.__query_str[var] = val
+        
+    def __getASCIIToDelim(self, data, delim, startfrom = 0):
+        i = data.find(delim, startfrom)
+        if i == -1:
+            i = len(data)
+        value = data[startfrom:i]
+        return i + len(delim), value.decode()
+    
+    def parseData(self):
         if 'Content-Type' not in self.__headers or 'x-www-form-urlencoded' in self.__headers['Content-Type']:
             fs = self.__data.decode().split('&')
             for f in fs:
@@ -75,7 +85,8 @@ class http_request:
                     self.__form[var] = val
         else:
             if 'json' in self.__headers['Content-Type']:
-                self.__json = json.loads(self.__data.decode())
+                if self.__data:
+                    self.__json = json.loads(self.__data.decode())
             #elif 'form-data' in self.__headers['Content-Type']:
             #    boundary = '--' + re.findall('boundary="?([^;$"]+)"?', self.__headers['Content-Type'])[0] + '\r\n'
             #    i = 0
@@ -87,12 +98,6 @@ class http_request:
             #            params = re.findall(r'form-data(?=.*(name)=([^;$]+))(?=.*(filename\*?)=([^;$]+))?.+', content_disposition)
             #            print (params)
             #            i += 4
-    def __getASCIIToDelim(self, data, delim, startfrom = 0):
-        i = data.find(delim, startfrom)
-        if i == -1:
-            i = len(data)
-        value = data[startfrom:i]
-        return i + len(delim), value.decode()
     
     @property
     def method(self):
@@ -102,6 +107,10 @@ class http_request:
     def uri(self):
         return self.__uri
     
+    @property
+    def base_uri(self):
+        return self.__base_uri
+
     @property
     def version(self):
         return self.__version

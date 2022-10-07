@@ -4,10 +4,10 @@ from inspect import signature
 from .base_auth import RequireAuth
 from ..exception import UNAUTHORIZED_ERROR
 
-def doBasicAuth(method, checkerFunc, **kwargs):
+def doBasicAuth(checkerFunc, **kwargs):
     AUTH_SCHEME='Basic'
     realm = ' realm="{}"'.format(kwargs['realm']) if 'realm' in kwargs else ''
-    def inner(self, **kwargs):
+    def basicAuth(self, **kwargs):
         if 'Authorization' not in self.request.headers:
             raise UNAUTHORIZED_ERROR({'WWW-Authenticate': '{}{}'.format(AUTH_SCHEME, realm)})
         m = None
@@ -22,7 +22,7 @@ def doBasicAuth(method, checkerFunc, **kwargs):
         }
         if not checkerFunc(**{k:v for k,v in params.items() if k in signature(checkerFunc).parameters}):
             raise UNAUTHORIZED_ERROR({'WWW-Authenticate': '{}{}'.format(AUTH_SCHEME, realm)})
-        return method(self, **kwargs, **{k:v for k,v in {'username': cred[0]}.items() if k in signature(method).parameters})
-    return inner
+        return {'username': cred[0]}
+    return basicAuth
 
 RequireBasicAuth = RequireAuth(doBasicAuth)

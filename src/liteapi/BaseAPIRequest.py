@@ -1,3 +1,33 @@
+from inspect import signature
+
+class APIMethod:
+    description = None
+    methodFunc = None
+    authenticator = None
+
+    @staticmethod
+    def create(methodFunc, authFunc = None, description = None):
+        if isinstance(methodFunc, APIMethod):
+            if authFunc and not methodFunc.authenticator:
+                methodFunc.authenticator = authFunc
+            if description and not methodFunc.description:
+                methodFunc.description = description
+            return methodFunc
+        if callable(methodFunc):
+            return APIMethod(methodFunc=methodFunc, authFunc=authFunc, description=description)
+        raise Exception('Unsupported method type')
+
+    def __init__(self, methodFunc, authFunc = None, description = None):
+        self.methodFunc = methodFunc
+        self.authenticator = authFunc
+        self.description = description
+    
+    def __call__(self, *args, **kwargs):
+        authParams = {}
+        if self.authenticator:
+            authParams = self.authenticator(*args, **kwargs)
+        return self.methodFunc(*args, **kwargs, **{k:v for k,v in authParams.items() if k in signature(self.methodFunc).parameters})
+
 class BaseAPIRequest:
     __definition = None
     __request = None

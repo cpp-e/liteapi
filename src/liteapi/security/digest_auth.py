@@ -54,7 +54,7 @@ def digest(**kwargs):
     response.update(ha2.encode())
     return response.hexdigest()
 
-def doDigestAuth(method, checkerFunc, **kwargs):
+def doDigestAuth(checkerFunc, **kwargs):
     AUTH_SCHEME='Digest'
     options = ' algorithm={}'.format(kwargs['algorithm'] if 'algorithm' in kwargs else 'MD5')
     options += ', realm="{}"'.format(kwargs['realm']) if 'realm' in kwargs else ''
@@ -62,7 +62,7 @@ def doDigestAuth(method, checkerFunc, **kwargs):
     options += ', qop="{}"'.format(kwargs['qop']) if 'qop' in kwargs else ''
     options += ', opaque="{}"'.format(kwargs['opaque']) if 'opaque' in kwargs else ''
     nonce_handle = kwargs['nonce_handle'] if 'nonce_handle' in kwargs else token_urlsafe
-    def inner(self, **kwargs):
+    def digestAuth(self, **kwargs):
         auth_options = options
         if 'Authorization' not in self.request.headers:
             auth_options += ', nonce="{}"'.format(nonce_handle())
@@ -85,7 +85,7 @@ def doDigestAuth(method, checkerFunc, **kwargs):
         if not checkerFunc(**{k:v for k,v in params.items() if k in signature(checkerFunc).parameters}):
             auth_options += ', nonce="{}"'.format(nonce_handle())
             raise UNAUTHORIZED_ERROR({'WWW-Authenticate': '{}{}'.format(AUTH_SCHEME, auth_options)})
-        return method(self, **kwargs, **{k:v for k,v in {'username': params['username']}.items() if k in signature(method).parameters})
-    return inner
+        return {'username': params['username']}
+    return digestAuth
 
 RequireDigestAuth = RequireAuth(doDigestAuth)

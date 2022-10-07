@@ -1,22 +1,19 @@
+from .. import LITEAPI_SUPPORTED_REQUEST_METHODS, BaseAPIRequest
+from ..BaseAPIRequest import APIMethod
+
 def RequireAuth(authFunc):
     def AuthFunction(checkerFunc, **kwargs):
-        supported_methods = ['DELETE', 'GET', 'POST', 'PUT']
         def inner(requestClassorMethod):
-            if isinstance(requestClassorMethod, type):
-                if not requestClassorMethod._BaseAPIRequest__methods:
-                    requestClassorMethod._BaseAPIRequest__methods = {}
-                if not requestClassorMethod._BaseAPIRequest__methods_keys:
-                    requestClassorMethod._BaseAPIRequest__methods_keys = []
-                for method in supported_methods:
-                    if method not in requestClassorMethod._BaseAPIRequest__methods and method.lower() in dir(requestClassorMethod):
-                        requestClassorMethod._BaseAPIRequest__methods[method] = authFunc(getattr(requestClassorMethod, method.lower()), checkerFunc, **kwargs)
-                        requestClassorMethod._BaseAPIRequest__methods_keys.append(method)
+            if isinstance(requestClassorMethod, type) and issubclass(requestClassorMethod, BaseAPIRequest):
+                for methodnam in LITEAPI_SUPPORTED_REQUEST_METHODS:
+                    if methodnam.lower() in dir(requestClassorMethod):
+                        setattr(requestClassorMethod, methodnam.lower(), APIMethod.create(methodFunc=getattr(requestClassorMethod, methodnam.lower()), authFunc=authFunc(checkerFunc, **kwargs)))
                 return requestClassorMethod
             
             elif callable(requestClassorMethod):
                 funname = requestClassorMethod.__name__
-                if funname.upper() in supported_methods:
-                    return authFunc(requestClassorMethod, checkerFunc, **kwargs)
+                if funname.upper() in LITEAPI_SUPPORTED_REQUEST_METHODS:
+                    return APIMethod(methodFunc=requestClassorMethod, authFunc=authFunc(checkerFunc, **kwargs))
 
         return inner
     return AuthFunction

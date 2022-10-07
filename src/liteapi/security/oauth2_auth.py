@@ -4,10 +4,10 @@ from inspect import signature
 from .base_auth import RequireAuth
 from .exception import *
 
-def doOAuth2TokenAuth(method, checkerFunc, **kwargs):
+def doOAuth2TokenAuth(checkerFunc, **kwargs):
     scope = kwargs['scope'] if 'scope' in kwargs else None
     realm = kwargs['realm'] if 'realm' in kwargs else None
-    def inner(self, **kwargs):
+    def oAuth2TokenAuth(self, **kwargs):
         self.response['Cache-Control'] = 'no-store'
         params = {}
         if realm:
@@ -26,11 +26,11 @@ def doOAuth2TokenAuth(method, checkerFunc, **kwargs):
         params['access_token'] = self.request.headers['Authorization'][self.request.headers['Authorization'].rfind(' ')+1:] if 'Authorization' in self.request.headers else self.request.form['access_token'] if 'access_token' in self.request.form else self.request.query_string['access_token']
         if not checkerFunc(**{k:v for k,v in params.items() if k in signature(checkerFunc).parameters}):
             raise INVALID_TOKEN_ERROR(**params)
-        return method(self, **kwargs, **{k:v for k,v in params.items() if k in signature(method).parameters})
-    return inner
+        return params
+    return oAuth2TokenAuth
 
-def doOAuth2PassAuth(method, checkerFunc, **kwargs):
-    def inner(self, **kwargs):
+def doOAuth2PassAuth(checkerFunc, **kwargs):
+    def oAuth2PassAuth(self, **kwargs):
         self.response['Cache-Control'] = 'no-store'
         if not self.request.form:
             raise INVALID_REQUEST_ERROR(error_description = 'Wrong Content-Type; expecting application/x-www-form-urlencoded')
@@ -54,8 +54,8 @@ def doOAuth2PassAuth(method, checkerFunc, **kwargs):
             params['client_secret'] = cred[1]
         if not checkerFunc(**{k:v for k,v in params.items() if k in signature(checkerFunc).parameters}):
             raise INVALID_GRANT_ERROR(error_description = 'Invalid Credentials')
-        return method(self, **kwargs)
-    return inner
+        return {k:v for k,v in params.items() if k in ['client_id', 'scope', 'username']}
+    return oAuth2PassAuth
 
 RequireOAuth2Token = RequireAuth(doOAuth2TokenAuth)
 RequireOAuth2PasswordAuth = RequireAuth(doOAuth2PassAuth)
