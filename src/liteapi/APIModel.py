@@ -26,32 +26,18 @@ class APIModel:
     def __init__(self, json_obj:dict):
         for a in json_obj:
             if a not in self.__annotations__:
-                #raise Exception(f'Class "{self.__class__.__name__}": JSON object contains an invalid parameter: "{a}"')
                 raise BAD_REQUEST_ERROR(error = "Invalid Parameter", error_description = f'reply from class "{self.__class__.__name__}": JSON object contains an invalid parameter: "{a}"')
         for a in self.__annotations__:
             if a not in json_obj:
                 if _isUnion(self.__annotations__[a]) and isinstance(None, self.__annotations__[a].__args__):
                     self.__setattr__(a, None)
                 else:
-                    #raise Exception(f'Class "{self.__class__.__name__}": JSON object missing parameter: "{a}"')
                     raise BAD_REQUEST_ERROR(error = "Invalid Parameter", error_description = f'reply from class "{self.__class__.__name__}": JSON object missing parameter: "{a}"')
             else:
                 try:
                     self.__setattr__(a, _checkValue(self.__annotations__[a], json_obj[a]))
                 except:
                     raise BAD_REQUEST_ERROR(error = "Invalid Parameter", error_description = f'reply from class "{self.__class__.__name__}": JSON object parameter "{a}" is of invalid type; expect {self.__annotations__[a]}')
-            '''
-            elif _isUnion(self.__annotations__[a]):
-                if isinstance(json_obj[a], self.__annotations__[a].__args__):
-                    self.__setattr__(a, json_obj[a])
-                else:
-                    raise Exception(f'Class "{self.__class__.__name__}": JSON object parameter "{a}" is of invalid type; expect {self.__annotations__[a]}')
-            elif isinstance(json_obj[a], self.__annotations__[a]) or \
-               (isinstance(self.__annotations__[a], type) and issubclass(self.__annotations__[a], APIModel) and isinstance(json_obj[a], dict)):
-                self.__setattr__(a, self.__annotations__[a](json_obj[a]))
-            else:
-                raise Exception(f'Class "{self.__class__.__name__}": JSON object parameter "{a}" is of invalid type; expect {self.__annotations__[a]}')
-            '''
 
 class APIJSONEncoder(JSONEncoder):
     def default(self, o):
