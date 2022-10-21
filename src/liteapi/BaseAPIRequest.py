@@ -1,4 +1,10 @@
-from inspect import signature
+from inspect import signature, _empty
+from .APIModel import APIModel
+
+class APIAuth:
+    '''
+    Used as an annotation to hint the framework that the function requires the authenticated data
+    '''
 
 class APIMethod:
     description = None
@@ -26,7 +32,21 @@ class APIMethod:
         authParams = {}
         if self.authenticator:
             authParams = self.authenticator(*args, **kwargs)
-        return self.methodFunc(*args, **kwargs, **{k:v for k,v in authParams.items() if k in signature(self.methodFunc).parameters})
+        nkwargs = {}
+        nkwargs.update(kwargs)
+        methodArgs = signature(self.methodFunc).parameters
+        for arg in methodArgs:
+            if arg in kwargs:
+                if methodArgs[arg].annotation in (str, int, float):
+                    nkwargs[arg] = methodArgs[arg].annotation(nkwargs[arg])
+            elif methodArgs[arg].annotation == APIAuth:
+                authData = APIAuth()
+                authData.__dict__.update(authParams)
+                nkwargs[arg] = authData
+            elif issubclass(methodArgs[arg].annotation, APIModel):
+                nkwargs[arg] = methodArgs[arg].annotation(args[0].request.json)
+
+        return self.methodFunc(*args, **nkwargs)
 
 class BaseAPIRequest:
     __definition = None

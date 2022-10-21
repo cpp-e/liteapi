@@ -2,6 +2,7 @@ import re, socket, threading, signal, json, errno, time
 from time import sleep
 from datetime import datetime
 from .BaseAPIRequest import BaseAPIRequest, APIMethod
+from .APIModel import APIJSONEncoder
 from .http_request import http_request
 from .errno import *
 from .exception import *
@@ -73,7 +74,7 @@ class liteapi:
                 raise RuntimeError('{} must be a subclass of BaseAPIRequest'.format((requestClass).__name__))
             hasQuery = uri.find('?')
             regex = uri[:hasQuery] if hasQuery > 0 else uri
-            requestClass._BaseAPIRequest__definition = re.sub(':(str|int)', '', regex)
+            requestClass._BaseAPIRequest__definition = re.sub(':(str|int|float)', '', regex)
             if not requestClass._BaseAPIRequest__methods:
                 requestClass._BaseAPIRequest__methods = {}
             if not requestClass._BaseAPIRequest__methods_keys:
@@ -87,12 +88,17 @@ class liteapi:
                     setattr(requestClass, methodnam.lower(), method)
                     requestClass._BaseAPIRequest__methods_keys.append(methodnam)
             
-            ms = re.findall('\{(([^:}]+)(:(str|int))?)\}', regex)
+            ms = re.findall('\{(([^:}]+)(:(str|int|float))?)\}', regex)
             for m in ms:
-                if len(m) > 3 and m[3] == 'int':
-                    regex = regex.replace('{{{}}}'.format(m[0]), '([0-9]+)')
-                    if m[1] not in requestClass._BaseAPIRequest__uriVars:
-                        requestClass._BaseAPIRequest__uriVars[m[1]] = int
+                if len(m) > 3 and m[3] in ['int', 'float']:
+                    if m[3] == 'int':
+                        regex = regex.replace('{{{}}}'.format(m[0]), '([0-9]+)')
+                        if m[1] not in requestClass._BaseAPIRequest__uriVars:
+                            requestClass._BaseAPIRequest__uriVars[m[1]] = int
+                    elif m[3] == 'float':
+                        regex = regex.replace('{{{}}}'.format(m[0]), r'([0-9]+\.[0-9]*|[0-9]*\.[0-9]+)')
+                        if m[1] not in requestClass._BaseAPIRequest__uriVars:
+                            requestClass._BaseAPIRequest__uriVars[m[1]] = float
                 else:
                     regex = regex.replace('{{{}}}'.format(m[0]), '([^/?&]+?)')
                     if m[1] not in requestClass._BaseAPIRequest__uriVars:
@@ -154,7 +160,7 @@ class liteapi:
             response_data_raw = copyRequest._BaseAPIRequest__methods[request.method if request.method != 'HEAD' else 'GET'](copyRequest, **vars)
 
             if('json' in copyRequest.response['content-type'] and isinstance(response_data_raw, (dict, list, tuple))):
-                response_data = json.dumps(response_data_raw)
+                response_data = json.dumps(response_data_raw, cls=APIJSONEncoder)
             else:
                 response_data = response_data_raw
             response_header = copyRequest.responseHeader
