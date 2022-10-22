@@ -1,4 +1,4 @@
-<img src="https://drive.google.com/uc?export=view&id=1MgB23wCcm6vZTBueAsiSXLEtWrKF50ut" alt="liteapi" style="max-width: 100%">
+<img src="media/liteapi-logo.png" alt="liteapi" style="max-width: 100%">
 
 ---
 

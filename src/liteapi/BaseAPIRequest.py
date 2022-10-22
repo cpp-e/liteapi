@@ -1,4 +1,5 @@
-from inspect import signature, _empty
+from inspect import signature
+from .verifiers.exception import *
 from .APIModel import APIModel
 
 class APIAuth:
@@ -44,7 +45,11 @@ class APIMethod:
                 authData.__dict__.update(authParams)
                 nkwargs[arg] = authData
             elif issubclass(methodArgs[arg].annotation, APIModel):
-                nkwargs[arg] = methodArgs[arg].annotation(args[0].request.json)
+                try:
+                    nkwargs[arg] = methodArgs[arg].annotation(args[0].request.json)
+                except Exception as e:
+                    print(str(e))
+                    raise BAD_REQUEST_ERROR(error="Invalid Data", error_description=str(e))
 
         return self.methodFunc(*args, **nkwargs)
 

@@ -2,7 +2,7 @@ import re, socket, threading, signal, json, errno, time
 from time import sleep
 from datetime import datetime
 from .BaseAPIRequest import BaseAPIRequest, APIMethod
-from .APIModel import APIJSONEncoder
+from .APIModel import APIJSONEncoder, APIModel
 from .http_request import http_request
 from .errno import *
 from .exception import *
@@ -122,7 +122,6 @@ class liteapi:
             except socket.error as e:
                 err = e.args[0]
                 if err in (errno.EAGAIN, errno.EWOULDBLOCK):
-                    sleep(0.01)
                     stime =  time.time()
                     continue
         if not request_data:
@@ -139,7 +138,7 @@ class liteapi:
                 ms = re.fullmatch(uriRegex, request.base_uri)
                 if ms:
                     found = True
-                    if not request.method in self.__request[uriRegex]._BaseAPIRequest__methods and (request.method == 'HEAD' and 'GET' not in self.__request[uriRegex]._BaseAPIRequest__methods):
+                    if request.method not in self.__request[uriRegex]._BaseAPIRequest__methods and (request.method != 'HEAD' or (request.method == 'HEAD' and 'GET' not in self.__request[uriRegex]._BaseAPIRequest__methods)):
                         raise APIException(NOT_IMPLEMENTED)
                     else:
                         for i in range(len(self.__request[uriRegex]._BaseAPIRequest__uriVars)):
@@ -159,7 +158,7 @@ class liteapi:
             
             response_data_raw = copyRequest._BaseAPIRequest__methods[request.method if request.method != 'HEAD' else 'GET'](copyRequest, **vars)
 
-            if('json' in copyRequest.response['content-type'] and isinstance(response_data_raw, (dict, list, tuple))):
+            if('json' in copyRequest.response['content-type'] and isinstance(response_data_raw, (dict, list, tuple, APIModel))):
                 response_data = json.dumps(response_data_raw, cls=APIJSONEncoder)
             else:
                 response_data = response_data_raw
