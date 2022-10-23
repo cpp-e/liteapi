@@ -3,7 +3,16 @@ from json import JSONEncoder
 from typing import Union
 
 def _isUnion(obj):
-    return '__origin__' in obj.__dict__ and obj.__origin__ is Union
+    return hasattr(obj, '__origin__') and obj.__origin__ is Union
+
+def _repr(obj):
+    if isinstance(obj, type):
+        if obj.__module__ == 'builtins' or obj.__module__ == '__main__':
+            return obj.__qualname__
+        return f'{obj.__module__}.{obj.__qualname__}'
+    if _isUnion(obj):
+        return " | ".join([_repr(t) for t in obj.__args__])
+    return repr(obj)
 
 def _checkValue(annotation, value):
     if annotation is float and isinstance(value, int):
@@ -26,18 +35,18 @@ class APIModel:
     def __init__(self, json_obj:dict):
         for a in json_obj:
             if a not in self.__annotations__:
-                raise Exception(f'reply from class "{self.__class__.__name__}": JSON object contains an invalid parameter: "{a}"')
+                raise Exception(f'reply from class "{_repr(self.__class__)}": JSON object contains an invalid parameter: "{a}"')
         for a in self.__annotations__:
             if a not in json_obj:
                 if _isUnion(self.__annotations__[a]) and isinstance(None, self.__annotations__[a].__args__):
                     self.__setattr__(a, None)
                 else:
-                    raise Exception(f'reply from class "{self.__class__.__name__}": JSON object missing parameter: "{a}"')
+                    raise Exception(f'reply from class "{_repr(self.__class__)}": JSON object missing parameter: "{a}"')
             else:
                 try:
                     self.__setattr__(a, _checkValue(self.__annotations__[a], json_obj[a]))
                 except:
-                    raise Exception(f'reply from class "{self.__class__.__name__}": JSON object parameter "{a}" is of invalid type; expect {self.__annotations__[a]}')
+                    raise Exception(f'reply from class "{_repr(self.__class__)}": JSON object parameter "{a}" is of invalid type; expect {_repr(self.__annotations__[a])}')
 
 class APIJSONEncoder(JSONEncoder):
     def default(self, o):
