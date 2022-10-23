@@ -1,4 +1,4 @@
-<img src="media/liteapi-logo.png" alt="liteapi" style="max-width: 100%">
+<img src="https://github.com/cpp-e/liteapi/raw/main/media/liteapi-logo.png" alt="liteapi" style="max-width: 100%">
 
 ---
 

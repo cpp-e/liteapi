@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: liteapi
-Version: 0.4.0
+Version: 0.4.1
 Summary: Lite python API framework
 Author-email: Kamal Abdel Wahab <kamal.abdelwahab@gmail.com>
 License: GNU General Public License v3 (GPLv3)
@@ -30,7 +30,7 @@ Requires-Python: >=3.6
 Description-Content-Type: text/markdown
 License-File: LICENSE
 
-<img src="media/liteapi-logo.png" alt="liteapi" style="max-width: 100%">
+<img src="https://github.com/cpp-e/liteapi/raw/main/media/liteapi-logo.png" alt="liteapi" style="max-width: 100%">
 
 ---
 
