@@ -1,6 +1,7 @@
 LICENSE
 README.md
 pyproject.toml
+src/liteapi/APIModel.py
 src/liteapi/BaseAPIRequest.py
 src/liteapi/__init__.py
 src/liteapi/errno.py
@@ -17,3 +18,6 @@ src/liteapi/security/basic_auth.py
 src/liteapi/security/digest_auth.py
 src/liteapi/security/exception.py
 src/liteapi/security/oauth2_auth.py
+src/liteapi/verifiers/__init__.py
+src/liteapi/verifiers/exception.py
+src/liteapi/verifiers/verifiers.py

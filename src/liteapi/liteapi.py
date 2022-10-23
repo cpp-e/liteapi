@@ -16,8 +16,8 @@ JSON_UTF8 = 'application/json; charset=utf-8'
 class liteapi:
     class __version:
         MAJOR = 0
-        MINOR = 3
-        PATCH = 1
+        MINOR = 4
+        PATCH = 0
         
         def __str__(self):
             return str("{}.{}.{}".format(self.MAJOR, self.MINOR, self.PATCH))
