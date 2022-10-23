@@ -41,7 +41,7 @@ from liteapi import liteapi,BaseAPIRequest
 ```python
 app = liteapi()
 ```
-    Note: to change the socket binding you can pass the host and port arguments to liteapi as below
+* Note: to change the socket binding you can pass the host and port arguments to liteapi as below
 ```python
 app = liteapi(host='0.0.0.0', port=8080)
 ```
