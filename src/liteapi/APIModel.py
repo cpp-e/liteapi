@@ -14,6 +14,9 @@ def _repr(obj):
         return " | ".join([_repr(t) for t in obj.__args__])
     return repr(obj)
 
+def _isinstance(obj, cls):
+    return isinstance(obj, cls.__args__) if _isUnion(cls) else isinstance(obj, cls)
+
 def _checkValue(annotation, value):
     if annotation is float and isinstance(value, int):
         return float(value)
@@ -25,7 +28,7 @@ def _checkValue(annotation, value):
                 pass
     elif isinstance(value, annotation) or \
          isinstance(annotation, type) and issubclass(annotation, APIModel) and isinstance(value, dict):
-        return annotation(value)
+        return value is None or annotation(value)
     raise Exception('Invalid Type Object')
 
 class APIModel:
@@ -38,7 +41,7 @@ class APIModel:
                 raise Exception(f'reply from class "{_repr(self.__class__)}": JSON object contains an invalid parameter: "{a}"')
         for a in self.__annotations__:
             if a not in json_obj:
-                if _isUnion(self.__annotations__[a]) and isinstance(None, self.__annotations__[a].__args__):
+                if _isinstance(None, self.__annotations__[a]):
                     self.__setattr__(a, None)
                 else:
                     raise Exception(f'reply from class "{_repr(self.__class__)}": JSON object missing parameter: "{a}"')
@@ -46,7 +49,7 @@ class APIModel:
                 try:
                     self.__setattr__(a, _checkValue(self.__annotations__[a], json_obj[a]))
                 except:
-                    raise Exception(f'reply from class "{_repr(self.__class__)}": JSON object parameter "{a}" is of invalid type; expect {_repr(self.__annotations__[a])}')
+                    raise Exception(f'reply from class "{_repr(self.__class__)}": JSON object parameter "{a}" is of invalid value; expect {_repr(self.__annotations__[a])}')
 
 class APIJSONEncoder(JSONEncoder):
     def default(self, o):

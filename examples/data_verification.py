@@ -44,7 +44,7 @@ To access the argument passed to the annotation in the checker function call sel
 pattern = VerifierClass("pattern", callable=True, checkerFunction=lambda self, v: re.match(self.args[0], v))
 
 class module(APIModel):
-    key: pattern('[a-zA-Z]{3}-[0-9]{5}')
+    key: pattern('^[a-zA-Z]{3}-[0-9]{5}$')
     secret: Optional[str]
 
 class returnedModule(APIModel):

@@ -106,6 +106,8 @@ class liteapi:
                 regex = regex.replace('{{{}}}'.format(m[0]), '([0-9]+)' if m[3] == 'int' else '([^/?&]+?)')
             self.__request[regex] = requestClass
         return inner
+    def extend_supported_content_types(self, mimetype, parser_function, request_property = 'obj'):
+        http_request.extend_supported_content_types(mimetype, parser_function, request_property)
     def __handle_client(self, sock, addr):
         BUFF_SIZE = 4096
         request_data = b''

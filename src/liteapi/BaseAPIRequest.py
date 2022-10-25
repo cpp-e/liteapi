@@ -46,7 +46,7 @@ class APIMethod:
                 nkwargs[arg] = authData
             elif issubclass(methodArgs[arg].annotation, APIModel):
                 try:
-                    nkwargs[arg] = methodArgs[arg].annotation(args[0].request.json)
+                    nkwargs[arg] = methodArgs[arg].annotation(args[0].request.obj)
                 except Exception as e:
                     print(str(e))
                     raise BAD_REQUEST_ERROR(error="Invalid Data", error_description=str(e))
