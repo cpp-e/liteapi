@@ -12,7 +12,7 @@ def parse_unicode_fields(name, value):
     res = re.split("'.*'", value)
     return name[:-1], parse_unicode_value(res[1], res[0])
 
-def __getASCIIToDelim(data, delim, startfrom = 0):
+def _getASCIIToDelim(data, delim, startfrom = 0):
         i = data.find(delim, startfrom)
         if i == -1:
             i = len(data)
@@ -27,6 +27,10 @@ def _params_parser(arr):
         val = val.strip()
         ret[key] = val
     return ret
+
+def _parse_content_type(arg):
+    content_type = arg.split(';')
+    return content_type[0].strip(), _params_parser(content_type[1:])
 
 class _headerDict(dict):
     def __getitem__(self, __key):
@@ -66,7 +70,7 @@ def _multipart_form_data(data):
         t = data[i:len(boundary)].decode()
         if data[i:len(boundary)].decode() == boundary:
             i += len(boundary)
-        i, content_disposition = __getASCIIToDelim(data, b'\r\n', i)
+        i, content_disposition = _getASCIIToDelim(data, b'\r\n', i)
         params = re.findall(r'form-data(?=.*(name)=([^;$]+))(?=.*(filename\*?)=([^;$]+))?.+', content_disposition)
         print (params)
         i += 4
@@ -84,19 +88,19 @@ class http_request:
         self.__form = {}
         self.__obj = {}
 
-        i, self.__method = __getASCIIToDelim(request_data, b' ')
-        i, uri = __getASCIIToDelim(request_data, b' ', i)
-        i, self.__version = __getASCIIToDelim(request_data, b'\r\n', i)
+        i, self.__method = _getASCIIToDelim(request_data, b' ')
+        i, uri = _getASCIIToDelim(request_data, b' ', i)
+        i, self.__version = _getASCIIToDelim(request_data, b'\r\n', i)
         
         headerEnd = request_data.find(b'\r\n\r\n')
         self.__headers = _headerDict()
         while i < headerEnd:
             if request_data[i] in [b' ', b'\t']:
-                i, value = __getASCIIToDelim(request_data, b'\r\n', i)
+                i, value = _getASCIIToDelim(request_data, b'\r\n', i)
                 self.__headers[key] += ', ' + value.strip()
             else:
-                i, key = __getASCIIToDelim(request_data, b': ', i)
-                i, value = __getASCIIToDelim(request_data, b'\r\n', i)
+                i, key = _getASCIIToDelim(request_data, b': ', i)
+                i, value = _getASCIIToDelim(request_data, b'\r\n', i)
                 if key in self.__headers:
                     self.__headers[key] += ', ' + value
                 else:
@@ -126,9 +130,11 @@ class http_request:
                     self.__query_str[var] = val
 
     @staticmethod
-    def extend_supported_content_types(mimetype, parser_function, inst_property = 'obj'):
+    def extend_supported_content_types(mimetype, parser_function, override = False, inst_property = 'obj'):
         if not callable(parser_function):
             raise Exception('parser_function must be a callable function')
+        if not override and mimetype in _media_types:
+            raise Exception(f'mimetype {mimetype} already defined in request mimetypes')
         _media_types[mimetype] = {'parser': parser_function, 'property': inst_property if inst_property in ['obj', 'json', 'form'] else 'obj'}
     
     def parseData(self):
@@ -136,15 +142,14 @@ class http_request:
             return
         if 'content-type' not in self.__headers:
             self.__headers['content-type'] = 'application/x-www-form-urlencoded'
-        content_type = self.__headers['content-type'].split(';')
-        content_type_params = _params_parser(content_type[1:])
+        content_type, content_type_params = _parse_content_type(self.__headers['content-type'])
         if 'charset' not in content_type_params:
             content_type_params['charset'] = 'utf-8'
-        if content_type[0] in _media_types:
-            func = self.__obj = _media_types[content_type[0]]['parser']
-            self.__obj = _media_types[content_type[0]]['parser'](self.__data, **{k:v for k,v in content_type_params.items() if k in signature(func).parameters})
-            if 'property' in _media_types[content_type[0]] and _media_types[content_type[0]]['property'] != 'obj':
-                self.__setattr__(f'_{self.__class__.__name__}__{_media_types[content_type[0]]["property"]}', self.__obj)
+        if content_type in _media_types:
+            func = _media_types[content_type]['parser']
+            self.__obj = func(self.__data, **{k:v for k,v in content_type_params.items() if k in signature(func).parameters})
+            if 'property' in _media_types[content_type] and _media_types[content_type]['property'] != 'obj':
+                self.__setattr__(f'_{self.__class__.__name__}__{_media_types[content_type]["property"]}', self.__obj)
     
     @property
     def method(self):
@@ -165,6 +170,12 @@ class http_request:
     @property
     def headers(self):
         return self.__headers
+
+    def __getitem__(self, name):
+        return self.__headers[name]
+    
+    def __setitem__(self, name, value):
+        self.__headers[name] = value
     
     @property
     def data(self):
