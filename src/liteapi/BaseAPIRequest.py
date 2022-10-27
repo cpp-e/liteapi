@@ -44,7 +44,7 @@ class APIMethod:
                 authData = APIAuth()
                 authData.__dict__.update(authParams)
                 nkwargs[arg] = authData
-            elif issubclass(methodArgs[arg].annotation, APIModel):
+            elif issubclass(methodArgs[arg].annotation, APIModel) or methodArgs[arg].annotation in [list, tuple]:
                 try:
                     nkwargs[arg] = methodArgs[arg].annotation(args[0].request.obj)
                 except Exception as e:

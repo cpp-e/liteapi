@@ -12,7 +12,14 @@ def parse_unicode_fields(name, value):
     res = re.split("'.*'", value)
     return name[:-1], parse_unicode_value(res[1], res[0])
 
-def params_parser(arr):
+def __getASCIIToDelim(data, delim, startfrom = 0):
+        i = data.find(delim, startfrom)
+        if i == -1:
+            i = len(data)
+        value = data[startfrom:i]
+        return i + len(delim), value.decode()
+
+def _params_parser(arr):
     ret = {}
     for i in arr:
         key,val = i.split('=')
@@ -31,7 +38,7 @@ class _headerDict(dict):
     def __delitem__(self, __key):
         super().__delitem__(__key.lower())
 
-def application_x_www_form_urlencoded(data):
+def _application_x_www_form_urlencoded(data):
     fs = data.decode().split('&')
     form_data={}
     for f in fs:
@@ -51,8 +58,22 @@ def application_x_www_form_urlencoded(data):
             form_data[var] = val
     return form_data
 
+'''
+def _multipart_form_data(data):
+    boundary = '--' + re.findall('boundary="?([^;$"]+)"?', self.__headers['content-type'])[0] + '\r\n'
+    i = 0
+    while i < len(data):
+        t = data[i:len(boundary)].decode()
+        if data[i:len(boundary)].decode() == boundary:
+            i += len(boundary)
+        i, content_disposition = __getASCIIToDelim(data, b'\r\n', i)
+        params = re.findall(r'form-data(?=.*(name)=([^;$]+))(?=.*(filename\*?)=([^;$]+))?.+', content_disposition)
+        print (params)
+        i += 4
+'''
+
 _media_types = {
-    'application/x-www-form-urlencoded': {'property': 'form', 'parser': application_x_www_form_urlencoded},
+    'application/x-www-form-urlencoded': {'property': 'form', 'parser': _application_x_www_form_urlencoded},
     'application/json': {'property':'json', 'parser': lambda data, charset: json.loads(data.decode(charset.lower()))}
 }
 
@@ -63,19 +84,19 @@ class http_request:
         self.__form = {}
         self.__obj = {}
 
-        i, self.__method = self.__getASCIIToDelim(request_data, b' ')
-        i, uri = self.__getASCIIToDelim(request_data, b' ', i)
-        i, self.__version = self.__getASCIIToDelim(request_data, b'\r\n', i)
+        i, self.__method = __getASCIIToDelim(request_data, b' ')
+        i, uri = __getASCIIToDelim(request_data, b' ', i)
+        i, self.__version = __getASCIIToDelim(request_data, b'\r\n', i)
         
         headerEnd = request_data.find(b'\r\n\r\n')
         self.__headers = _headerDict()
         while i < headerEnd:
             if request_data[i] in [b' ', b'\t']:
-                i, value = self.__getASCIIToDelim(request_data, b'\r\n', i)
+                i, value = __getASCIIToDelim(request_data, b'\r\n', i)
                 self.__headers[key] += ', ' + value.strip()
             else:
-                i, key = self.__getASCIIToDelim(request_data, b': ', i)
-                i, value = self.__getASCIIToDelim(request_data, b'\r\n', i)
+                i, key = __getASCIIToDelim(request_data, b': ', i)
+                i, value = __getASCIIToDelim(request_data, b'\r\n', i)
                 if key in self.__headers:
                     self.__headers[key] += ', ' + value
                 else:
@@ -110,20 +131,13 @@ class http_request:
             raise Exception('parser_function must be a callable function')
         _media_types[mimetype] = {'parser': parser_function, 'property': inst_property if inst_property in ['obj', 'json', 'form'] else 'obj'}
     
-    def __getASCIIToDelim(self, data, delim, startfrom = 0):
-        i = data.find(delim, startfrom)
-        if i == -1:
-            i = len(data)
-        value = data[startfrom:i]
-        return i + len(delim), value.decode()
-    
     def parseData(self):
         if not self.__data:
             return
         if 'content-type' not in self.__headers:
             self.__headers['content-type'] = 'application/x-www-form-urlencoded'
         content_type = self.__headers['content-type'].split(';')
-        content_type_params = params_parser(content_type[1:])
+        content_type_params = _params_parser(content_type[1:])
         if 'charset' not in content_type_params:
             content_type_params['charset'] = 'utf-8'
         if content_type[0] in _media_types:
@@ -131,17 +145,6 @@ class http_request:
             self.__obj = _media_types[content_type[0]]['parser'](self.__data, **{k:v for k,v in content_type_params.items() if k in signature(func).parameters})
             if 'property' in _media_types[content_type[0]] and _media_types[content_type[0]]['property'] != 'obj':
                 self.__setattr__(f'_{self.__class__.__name__}__{_media_types[content_type[0]]["property"]}', self.__obj)
-        #    #elif 'form-data' in self.__headers['Content-Type']:
-        #    #    boundary = '--' + re.findall('boundary="?([^;$"]+)"?', self.__headers['Content-Type'])[0] + '\r\n'
-        #    #    i = 0
-        #    #    while i < len(self.__data):
-        #    #        t = self.__data[i:len(boundary)].decode()
-        #    #        if self.__data[i:len(boundary)].decode() == boundary:
-        #    #            i += len(boundary)
-        #    #            i, content_disposition = self.__getASCIIToDelim(self.__data, b'\r\n', i)
-        #    #            params = re.findall(r'form-data(?=.*(name)=([^;$]+))(?=.*(filename\*?)=([^;$]+))?.+', content_disposition)
-        #    #            print (params)
-        #    #            i += 4
     
     @property
     def method(self):
