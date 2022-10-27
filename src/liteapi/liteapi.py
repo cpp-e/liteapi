@@ -17,9 +17,7 @@ def _application_json(data, charset = 'utf-8'):
     ret = ''
     if type(data) in [int, float, bool, str]:
         ret = json.dumps({'data': data})
-    elif type(data) in [list, tuple, dict]:
-        ret = json.dumps(data)
-    elif issubclass(type(data), APIModel):
+    elif type(data) in [list, tuple, dict] or issubclass(type(data), APIModel):
         ret = json.dumps(data, cls=APIJSONEncoder)
     else:
         raise Exception(f'Unsupported response data: returned type {_repr(data)}')
