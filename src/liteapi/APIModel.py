@@ -38,18 +38,18 @@ class APIModel:
     def __init__(self, json_obj:dict):
         for a in json_obj:
             if a not in self.__annotations__:
-                raise Exception(f'reply from class "{_repr(self.__class__)}": JSON object contains an invalid parameter: "{a}"')
+                raise Exception(f'reply from class "{_repr(self.__class__)}": object contains an invalid parameter: "{a}"')
         for a in self.__annotations__:
             if a not in json_obj:
                 if _isinstance(None, self.__annotations__[a]):
                     self.__setattr__(a, None)
                 else:
-                    raise Exception(f'reply from class "{_repr(self.__class__)}": JSON object missing parameter: "{a}"')
+                    raise Exception(f'reply from class "{_repr(self.__class__)}": object missing parameter: "{a}"')
             else:
                 try:
                     self.__setattr__(a, _checkValue(self.__annotations__[a], json_obj[a]))
                 except:
-                    raise Exception(f'reply from class "{_repr(self.__class__)}": JSON object parameter "{a}" is of invalid value; expect {_repr(self.__annotations__[a])}')
+                    raise Exception(f'reply from class "{_repr(self.__class__)}": object parameter "{a}" is of invalid value; expect {_repr(self.__annotations__[a])}')
 
 class APIJSONEncoder(JSONEncoder):
     def default(self, o):
