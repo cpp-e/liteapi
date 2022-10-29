@@ -21,57 +21,103 @@ _response_media_types = _mediaDict({
 })
 
 class _cookies:
-    def __init__(self, name, value, path = None, domain = None, expires = None, max_age = None, secure = False, httponly = False):
+    def __init__(self, name, value, expires = None, max_age = None, path = None, domain = None, secure = False, httponly = False):
         if not isinstance(name, str) and not _is_valid_token(name):
             raise Exception(f'Cannot set cookie name to "{name}"; name cannot contain CTL characters or separators')
-        
-        if not isinstance(value, str):
-            raise Exception(f'Cannot set the value of cookie "{name}" to "{value}"')
+
         self.__name = name
+        self.value = value
+        self.expires = expires
+        self.max_age = max_age
+        self.path = path
+        self.domain = domain
+        self.secure = secure
+        self.httponly = httponly
+    
+    @property
+    def name(self):
+        return self.__name
+    
+    @property
+    def value(self):
+        return self.__value
+    
+    @value.setter
+    def value(self, value):
+        if not isinstance(value, str):
+            raise Exception(f'Cannot set the value of cookie "{self.__name}" to "{value}"')
         self.__value = ''
         for c in value:
             if not _is_valid_cookie_value_octet(c) or ord(c) > 0x7F:
                 self.__value += ''.join(f'%{b:02x}' for b in c.encode())
             else:
                 self.__value += c
-
-        if '__Secure-' in name:
-            secure = True
         
-        if '__Host-' in name:
-            secure = True
-            path = '/'
-            domain = None
-
-        if path and (not isinstance(path, str) or not _is_valid_cookie_path(path)):
-            raise Exception(f'Invalid Path value for cookie "{name}"')
-        
-        if domain and not re.fullmatch('[a-zA-Z][a-zA-Z0-9\-]*(?:\.[a-zA-Z][a-zA-Z0-9\-]*)*', domain):
-            raise Exception(f'Invalid Domain value for cookie "{name}"')
-        
+    @property
+    def expires(self):
+        return self.__expires
+    
+    @expires.setter
+    def expires(self, expires):
         if isinstance(expires, date):
             expires = datetime.combine(expires, time())
         elif isinstance(expires, time):
             expires = datetime.combine(date.today(), expires)
         elif expires and not isinstance(expires, datetime):
-            raise Exception(f'Invalid Expires value for cookie "{name}"; expect datetime, date, or time type')
-        
-        if max_age and not isinstance(max_age, int):
-            raise Exception(f'Invalid Max-Age value for cookie "{name}"')
-        
-        if not isinstance(secure, bool):
-            raise Exception(f'Invalid Secure value for cookie "{name}; expect boolean value"')
-        
-        if not isinstance(httponly, bool):
-            raise Exception(f'Invalid HttpOnly value for cookie "{name}; expect boolean value"')
-        
-        self.__path = path
-        self.__domain = domain
+            raise Exception(f'Invalid Expires value for cookie "{self.__name}"; expect datetime, date, or time type')
         self.__expires = expires
-        self.__max_age = max_age
-        self.__secure = secure
-        self.__httponly = httponly
+
+    @property
+    def max_age(self):
+        return self.__max_age
     
+    @max_age.setter
+    def max_age(self, max_age):
+        if max_age and not isinstance(max_age, int):
+            raise Exception(f'Invalid Max-Age value for cookie "{self.__name}"')
+        self.__max_age = max_age
+
+
+    @property
+    def path(self):
+        return self.__path
+    
+    @path.setter
+    def path(self, path):
+        if path and (not isinstance(path, str) or not _is_valid_cookie_path(path)):
+            raise Exception(f'Invalid Path value for cookie "{self.__name}"')
+        self.__path = path if '__Host-' not in self.__name else '/'
+    
+    @property
+    def domain(self):
+        return self.__domain
+    
+    @domain.setter
+    def domain(self, domain):
+        if domain and not re.fullmatch('[a-zA-Z][a-zA-Z0-9\-]*(?:\.[a-zA-Z][a-zA-Z0-9\-]*)*', domain):
+            raise Exception(f'Invalid Domain value for cookie "{self.__name}"')
+        self.__domain = domain if '__Host-' not in self.__name else None
+    
+    @property
+    def secure(self):
+        return self.__secure
+    
+    @secure.setter
+    def secure(self, secure):
+        if not isinstance(secure, bool):
+            raise Exception(f'Invalid Secure value for cookie "{self.__name}; expect boolean value"')
+        self.__secure = secure if '__Secure-' not in self.__name and '__Host-' not in self.__name else True
+
+    @property
+    def httponly(self):
+        return self.__httponly
+
+    @httponly.setter
+    def httponly(self, httponly):
+        if not isinstance(httponly, bool):
+            raise Exception(f'Invalid HttpOnly value for cookie "{self.__name}; expect boolean value"')
+        self.__httponly = httponly
+
     def __str__(self):
         _str = f'{self.__name}={self.__value}'
         if self.__expires:
@@ -123,7 +169,7 @@ class http_response:
             return func(data, **{k:v for k,v in content_type_params.items() if k in signature(func).parameters})
         return f'{data}'.encode()
 
-    def setCookie(self, name, value, path = None, domain = None, expires = None, max_age = None, secure = False, httponly = False):
+    def setCookies(self, name, value, path = None, domain = None, expires = None, max_age = None, secure = False, httponly = False):
         self.__cookies[name] = _cookies(name, value, path, domain, expires, max_age, secure, httponly)
 
     @property
