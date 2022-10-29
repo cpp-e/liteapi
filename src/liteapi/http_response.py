@@ -59,9 +59,9 @@ class _cookies:
     
     @expires.setter
     def expires(self, expires):
-        if isinstance(expires, date):
+        if expires.__class__ is date:
             expires = datetime.combine(expires, time())
-        elif isinstance(expires, time):
+        elif expires.__class__ is time:
             expires = datetime.combine(date.today(), expires)
         elif expires and not isinstance(expires, datetime):
             raise Exception(f'Invalid Expires value for cookie "{self.__name}"; expect datetime, date, or time type')
@@ -169,8 +169,8 @@ class http_response:
             return func(data, **{k:v for k,v in content_type_params.items() if k in signature(func).parameters})
         return f'{data}'.encode()
 
-    def setCookies(self, name, value, path = None, domain = None, expires = None, max_age = None, secure = False, httponly = False):
-        self.__cookies[name] = _cookies(name, value, path, domain, expires, max_age, secure, httponly)
+    def setCookies(self, name, value, expires = None, max_age = None, path = None, domain = None, secure = False, httponly = False):
+        self.__cookies[name] = _cookies(name, value, expires, max_age, path, domain, secure, httponly)
 
     @property
     def responseHeader(self):

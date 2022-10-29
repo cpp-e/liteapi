@@ -127,12 +127,21 @@ class liteapi:
         if not request_data:
             sock.close()
             return
-        request = http_request(request_data)
+        
+        try:
+            request = http_request(request_data)
+        except:
+            sock.close()
+            return
+        
         try:
             if request.version != 'HTTP/1.1':
                 raise APIException(HTTP_VERSION_NOT_SUPPORTED)
             if request.method not in self.__supportedMethods:
                 raise APIException(METHOD_NOT_ALLOWED)
+            request._http_request__protocol = f'http{"s" if self.__ssl else ""}'
+            request._http_request__host = self.__config['host']
+            request._http_request__port = self.__config['port']
             found, uriRegex, vars = False, None, {}
             for uriRegex in self.__request:
                 ms = re.fullmatch(uriRegex, request.base_uri)

@@ -66,6 +66,9 @@ class http_request:
         self.__form = {}
         self.__obj = {}
         self.__cookies = {}
+        self.__protocol = None
+        self.__host = None
+        self.__port = None
 
         i, self.__method = _getASCIIToDelim(request_data, b' ')
         i, uri = _getASCIIToDelim(request_data, b' ', i)
@@ -131,6 +134,18 @@ class http_request:
             if 'property' in _media_types[content_type] and _media_types[content_type]['property'] != 'obj':
                 self.__setattr__(f'_{self.__class__.__name__}__{_media_types[content_type]["property"]}', self.__obj)
     
+    @property
+    def protocol(self):
+        return self.__protocol
+    
+    @property
+    def host(self):
+        return self.__headers['host'].split(':')[0] if 'host' in self.__headers else self.__host
+    
+    @property
+    def port(self):
+        return int(self.__headers['host'].split(':')[1]) if 'host' in self.__headers and ':' in self.__headers['host'] else self.__port
+
     @property
     def method(self):
         return self.__method
