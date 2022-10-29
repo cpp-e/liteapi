@@ -1,54 +1,14 @@
-from inspect import signature
 import re, socket, threading, signal, json, errno, time
 from datetime import datetime
 from .BaseAPIRequest import BaseAPIRequest, APIMethod
-from .APIModel import APIJSONEncoder, APIModel, _repr
-from .http_request import http_request, _headerDict, _parse_content_type
+from .http_request import http_request
+from .http_response import http_response
 from .errno import *
 from .exception import *
 from . import LITEAPI_SUPPORTED_REQUEST_METHODS
 
 RETURN_STATUS = lambda c : '{} {}'.format(c, strerror(c))
 RETURN_STATUS_OBJ = lambda c : {'code': c, 'message': strerror(c)}
-
-JSON_UTF8 = 'application/json; charset=utf-8'
-
-def _application_json(data, charset = 'utf-8'):
-    ret = ''
-    if type(data) in [int, float, bool, str]:
-        ret = json.dumps({'data': data})
-    elif type(data) in [list, tuple, dict] or issubclass(type(data), APIModel):
-        ret = json.dumps(data, cls=APIJSONEncoder)
-    else:
-        raise Exception(f'Unsupported response data: returned type {_repr(data)}')
-    return ret.encode(charset)
-
-class _mediaDict(dict):
-    def __getitem__(self, __key):
-        _type,_subtype = __key.lower().split('/')
-        if super().__contains__(f'{_type}/{_subtype}'):
-            return super().__getitem__(f'{_type}/{_subtype}')
-        elif super().__contains__(f'{_type}/*'):
-            return super().__getitem__(f'{_type}/*')
-        elif super().__contains__('*/*'):
-            return super().__getitem__(f'*/*')
-        return super().__getitem__(__key)
-    def __setitem__(self, __key, __value):
-        if '/' not in __key:
-            raise Exception('Invalid mimetype name: expect type/subtype')
-        super().__setitem__(__key.lower(), __value)
-    def __contains__(self, __o):
-        if '/' not in __o:
-            raise Exception('Invalid mimetype name: expect type/subtype')
-        _type,_subtype = __o.lower().split('/')
-        return super().__contains__(f'{_type}/{_subtype}') or super().__contains__(f'{_type}/*') or super().__contains__('*/*')
-    def __delitem__(self, __key):
-        super().__delitem__(__key.lower())
-
-_response_media_types = _mediaDict({
-    'application/json': _application_json,
-    'text/*': lambda data, charset = 'utf-8': f'{data}'.encode(charset)
-})
 
 class liteapi:
     class __version:
@@ -145,15 +105,11 @@ class liteapi:
     def extend_supported_request_content_types(self, mimetype, parser_function, override = False, request_property = 'obj'):
         http_request.extend_supported_content_types(mimetype, parser_function, override, request_property)
     def extend_supported_response_content_types(self, mimetype, parser_function, override = False):
-        if not callable(parser_function):
-            raise Exception('parser_function must be a callable function')
-        if not override and mimetype in _response_media_types:
-            raise Exception(f'mimetype {mimetype} already defined in response mimetypes')
-        _response_media_types[mimetype] = parser_function
+        http_response.extend_supported_content_types(mimetype, parser_function, override)
     def __handle_client(self, sock, addr):
         BUFF_SIZE = 4096
         request_data = b''
-        response = 'HTTP/1.1 {}\r\ncontent-length: {}\r\n{}\r\n'
+        response_format = 'HTTP/1.1 {}\r\ncontent-length: {}\r\n{}\r\n'
         stime = 0
         while True:
             try:
@@ -196,40 +152,31 @@ class liteapi:
             response_status = RETURN_STATUS(response_code)
             copyRequest = self.__request[uriRegex]()
             copyRequest._BaseAPIRequest__request = request
-            copyRequest._BaseAPIRequest__response = _headerDict()
+            copyRequest._BaseAPIRequest__response = http_response()
             copyRequest.client_address = addr[0]
 
             request.parseData()
             
-            response_data_raw = copyRequest._BaseAPIRequest__methods[request.method if request.method != 'HEAD' else 'GET'](copyRequest, **vars)
-
-            if 'content-type' not in copyRequest.response:
-                copyRequest.response['content-type'] = JSON_UTF8
-
-            content_type, content_type_params = _parse_content_type(copyRequest.response['content-type'])
-            response_data = bytes()
-            if content_type in _response_media_types:
-                func = _response_media_types[content_type]
-                response_data = func(response_data_raw, **{k:v for k,v in content_type_params.items() if k in signature(func).parameters})
-            else:
-                response_data = f'{response_data_raw}'.encode()
-            response_header = copyRequest.responseHeader
+            response_data = copyRequest.response.getResponse(copyRequest._BaseAPIRequest__methods[request.method if request.method != 'HEAD' else 'GET'](copyRequest, **vars))
+            response_header = copyRequest.response.responseHeader
             
         except APIException as e:
             response_code = e.code
             response_status = RETURN_STATUS(response_code)
             
-            response_data = json.dumps(e.response if e.response else RETURN_STATUS_OBJ(response_code)).encode()
-            response_header = e.responseHeader
+            response = http_response()
+            response_data = response.getResponse(e.response if e.response else RETURN_STATUS_OBJ(response_code))
+            response_header = response.responseHeader
         except Exception as e:
             response_code = INTERNAL_SERVER_ERROR
             response_status = RETURN_STATUS(INTERNAL_SERVER_ERROR)
-
-            response_data = json.dumps(RETURN_STATUS_OBJ(response_code)).encode()
-            response_header = 'content-type: {}\r\n'.format(JSON_UTF8)
+            
+            response = http_response()
+            response_data = response.getResponse(RETURN_STATUS_OBJ(response_code))
+            response_header = response.responseHeader
             print(e)
         
-        response_bytes = response.format(response_status, len(response_data), response_header).encode()
+        response_bytes = response_format.format(response_status, len(response_data), response_header).encode()
         if(request.method != 'HEAD'):
             response_bytes += response_data
         sock.sendall(response_bytes)

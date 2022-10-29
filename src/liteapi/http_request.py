@@ -1,5 +1,6 @@
 from inspect import signature
 import re, json
+from ._internals import _headerDict, _mediaDict, _parse_content_type
 
 def parse_unicode_value(value, charset='utf-8'):
     for m in re.findall('((%[0-9a-fA-F]{2})+)', value):
@@ -18,29 +19,6 @@ def _getASCIIToDelim(data, delim, startfrom = 0):
             i = len(data)
         value = data[startfrom:i]
         return i + len(delim), value.decode()
-
-def _params_parser(arr):
-    ret = {}
-    for i in arr:
-        key,val = i.split('=')
-        key = key.strip()
-        val = val.strip()
-        ret[key] = val
-    return ret
-
-def _parse_content_type(arg):
-    content_type = arg.split(';')
-    return content_type[0].strip(), _params_parser(content_type[1:])
-
-class _headerDict(dict):
-    def __getitem__(self, __key):
-        return super().__getitem__(__key.lower())
-    def __setitem__(self, __key, __value):
-        super().__setitem__(__key.lower(), __value)
-    def __contains__(self, __o):
-        return super().__contains__(__o.lower())
-    def __delitem__(self, __key):
-        super().__delitem__(__key.lower())
 
 def _application_x_www_form_urlencoded(data):
     fs = data.decode().split('&')
@@ -76,10 +54,10 @@ def _multipart_form_data(data):
         i += 4
 '''
 
-_media_types = {
+_media_types = _mediaDict({
     'application/x-www-form-urlencoded': {'property': 'form', 'parser': _application_x_www_form_urlencoded},
-    'application/json': {'property':'json', 'parser': lambda data, charset: json.loads(data.decode(charset.lower()))}
-}
+    'application/json': {'property':'json', 'parser': lambda data, charset = 'utf-8': json.loads(data.decode(charset.lower()))}
+})
 
 class http_request:
     def __init__(self, request_data):
@@ -87,6 +65,7 @@ class http_request:
         self.__json = {}
         self.__form = {}
         self.__obj = {}
+        self.__cookies = {}
 
         i, self.__method = _getASCIIToDelim(request_data, b' ')
         i, uri = _getASCIIToDelim(request_data, b' ', i)
@@ -97,12 +76,12 @@ class http_request:
         while i < headerEnd:
             if request_data[i] in [b' ', b'\t']:
                 i, value = _getASCIIToDelim(request_data, b'\r\n', i)
-                self.__headers[key] += ', ' + value.strip()
+                self.__headers[key] += ('; ' if key.lower() in ['cookie'] else ', ') + value.strip()
             else:
                 i, key = _getASCIIToDelim(request_data, b': ', i)
                 i, value = _getASCIIToDelim(request_data, b'\r\n', i)
                 if key in self.__headers:
-                    self.__headers[key] += ', ' + value
+                    self.__headers[key] += ('; ' if key.lower() in ['cookie'] else ', ') + value
                 else:
                     self.__headers[key] = value
         self.__data = request_data[i+2:]
@@ -128,6 +107,9 @@ class http_request:
                     self.__query_str[var].append(val)
                 else:
                     self.__query_str[var] = val
+        
+        if 'cookie' in self.__headers:
+            self.__cookies = {k:v for k,v in [p.split('=') for p in self.__headers['cookie'].split('; ')]}
 
     @staticmethod
     def extend_supported_content_types(mimetype, parser_function, override = False, inst_property = 'obj'):
@@ -143,8 +125,6 @@ class http_request:
         if 'content-type' not in self.__headers:
             self.__headers['content-type'] = 'application/x-www-form-urlencoded'
         content_type, content_type_params = _parse_content_type(self.__headers['content-type'])
-        if 'charset' not in content_type_params:
-            content_type_params['charset'] = 'utf-8'
         if content_type in _media_types:
             func = _media_types[content_type]['parser']
             self.__obj = func(self.__data, **{k:v for k,v in content_type_params.items() if k in signature(func).parameters})
@@ -174,9 +154,19 @@ class http_request:
     def __getitem__(self, name):
         return self.__headers[name]
     
+    def __contains__(self, name):
+        return name in self.__headers
+    
     def __setitem__(self, name, value):
         self.__headers[name] = value
     
+    def __delitem__(self, __key):
+        self.__headers.__delitem__(__key)
+    
+    @property
+    def cookies(self):
+        return self.__cookies
+
     @property
     def data(self):
         return self.__data
