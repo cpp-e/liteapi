@@ -3,7 +3,7 @@ from inspect import signature
 import json
 import re
 from .APIModel import APIJSONEncoder, APIModel, _repr
-from ._internals import _mediaDict, _headerDict, _parse_content_type, _is_valid_token, _is_valid_cookie_value, _is_valid_cookie_octet, _is_valid_cookie_path
+from ._internals import _mediaDict, _headerDict, _parse_content_type, _is_valid_token, _is_valid_cookie_value_octet, _is_valid_cookie_path
 
 def _application_json(data, charset = 'utf-8'):
     ret = ''
@@ -30,7 +30,7 @@ class _cookies:
         self.__name = name
         self.__value = ''
         for c in value:
-            if not _is_valid_cookie_octet(c) or ord(c) > 0x7F:
+            if not _is_valid_cookie_value_octet(c) or ord(c) > 0x7F:
                 self.__value += ''.join(f'%{b:02x}' for b in c.encode())
             else:
                 self.__value += c

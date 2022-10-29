@@ -59,15 +59,8 @@ def _is_valid_token(_token):
             _valid = False
     return _valid
 
-def _is_valid_cookie_octet(_octet):
-    return not _is_CTL_char(_octet) and _octet not in " \",;\\"
-
-def _is_valid_cookie_value(_value):
-    _valid = True
-    for c in _value:
-        if _is_CTL_char(c) or c in " \",;\\":
-            _valid = False
-    return _valid
+def _is_valid_cookie_value_octet(_octet):
+    return _is_TEXT_char(_octet) and _octet not in " \",;\\"
 
 def _is_valid_cookie_path(_path):
     _valid = True
