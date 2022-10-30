@@ -148,6 +148,10 @@ class http_response:
         _response_media_types[mimetype] = parser_function
 
     @property
+    def cookies(self):
+        return self.__cookies
+
+    @property
     def headers(self):
         return self.__headers
 

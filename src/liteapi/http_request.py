@@ -25,7 +25,7 @@ def _application_x_www_form_urlencoded(data):
     form_data={}
     for f in fs:
         try:
-            var, val = f.split('=')
+            var, val = f.split('=', maxsplit=1)
             val = parse_unicode_value(val)
         except:
             var, val = f, None
@@ -97,7 +97,7 @@ class http_request:
             qs = uri[hasQuery+1:].split('&')
             for q in qs:
                 try:
-                    var, val = q.split('=')
+                    var, val = q.split('=', maxsplit=1)
                     val = parse_unicode_value(val)
                 except:
                     var, val = q, None
@@ -112,7 +112,7 @@ class http_request:
                     self.__query_str[var] = val
         
         if 'cookie' in self.__headers:
-            self.__cookies = {k:v for k,v in [p.split('=') for p in self.__headers['cookie'].split('; ')]}
+            self.__cookies = {k:v for k,v in [p.split('=', maxsplit=1) for p in self.__headers['cookie'].split('; ')]}
 
     @staticmethod
     def extend_supported_content_types(mimetype, parser_function, override = False, inst_property = 'obj'):
