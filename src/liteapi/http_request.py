@@ -1,5 +1,6 @@
 from inspect import signature
-import re, json
+import re
+from json import loads
 from ._internals import _headerDict, _mediaDict, _parse_content_type
 
 def parse_unicode_value(value, charset='utf-8'):
@@ -56,7 +57,7 @@ def _multipart_form_data(data):
 
 _media_types = _mediaDict({
     'application/x-www-form-urlencoded': {'property': 'form', 'parser': _application_x_www_form_urlencoded},
-    'application/json': {'property':'json', 'parser': lambda data, charset = 'utf-8': json.loads(data.decode(charset.lower()))}
+    'application/json': {'property':'json', 'parser': lambda data, charset = 'utf-8': loads(data.decode(charset.lower()))}
 })
 
 class http_request:
@@ -144,7 +145,7 @@ class http_request:
     
     @property
     def port(self):
-        return int(self.__headers['host'].split(':')[1]) if 'host' in self.__headers and ':' in self.__headers['host'] else self.__port
+        return int(self.__headers['host'].split(':')[1] if ':' in self.__headers['host'] else [80, 443][int(self.__protocol == 'https')]) if 'host' in self.__headers else self.__port
 
     @property
     def method(self):

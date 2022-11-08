@@ -11,6 +11,7 @@ class APIMethod:
     description = None
     methodFunc = None
     authenticator = None
+    args = None
 
     @staticmethod
     def create(methodFunc, authFunc = None, description = None):
@@ -28,6 +29,15 @@ class APIMethod:
         self.methodFunc = methodFunc
         self.authenticator = authFunc
         self.description = description
+        self.args = {}
+        self.returnType = None
+
+        for a in self.methodFunc.__annotations__:
+            if self.methodFunc.__annotations__[a] is not APIAuth:
+                if a == 'return':
+                    self.returnType = self.methodFunc.__annotations__[a]
+                else:
+                    self.args[a] = self.methodFunc.__annotations__[a]
     
     def __call__(self, *args, **kwargs):
         authParams = {}
@@ -40,7 +50,7 @@ class APIMethod:
             if arg in kwargs:
                 if methodArgs[arg].annotation in (str, int, float):
                     nkwargs[arg] = methodArgs[arg].annotation(nkwargs[arg])
-            elif methodArgs[arg].annotation == APIAuth:
+            elif methodArgs[arg].annotation is APIAuth:
                 authData = APIAuth()
                 authData.__dict__.update(authParams)
                 nkwargs[arg] = authData
@@ -60,6 +70,7 @@ class BaseAPIRequest:
     __methods = None
     __methods_keys = None
     __uriVars = None
+    _hasDoc = True
 
     @property
     def definition(self):

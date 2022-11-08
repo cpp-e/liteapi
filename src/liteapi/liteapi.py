@@ -1,10 +1,14 @@
-import re, socket, threading, signal, json, errno, time
+import re, socket, errno, select
+from threading import Thread
+from signal import signal, SIGINT, SIGTERM
 from datetime import datetime
+from time import time
 from .BaseAPIRequest import BaseAPIRequest, APIMethod
 from .http_request import http_request
 from .http_response import http_response
 from .errno import *
 from .exception import *
+from .docs.docs import _docs
 from . import LITEAPI_SUPPORTED_REQUEST_METHODS
 
 RETURN_STATUS = lambda c : '{} {}'.format(c, strerror(c))
@@ -34,13 +38,7 @@ class liteapi:
         self.__config = liteapi.__defaultConfig.copy()
         self.__config.update(kwargs)
         self.__init_socket()
-        @self.register('/info')
-        class infoClass (BaseAPIRequest):
-            def get(myself):
-                info = []
-                for regex in self._liteapi__request:
-                    info.append({'uri': self._liteapi__request[regex]._BaseAPIRequest__definition, 'methods': self._liteapi__request[regex]._BaseAPIRequest__methods_keys})
-                return info
+        self.__docs = _docs(self) if 'nodoc' not in kwargs or not kwargs['nodoc'] else None
     def __del__(self):
         self.close()
     def close(self):
@@ -55,12 +53,14 @@ class liteapi:
             self.__socket = None
     def run(self):
         self.__running = True
+        if(self.__docs):
+            self.__docs.build()
         print("""API Server started on URL:
         http{}://{}:{}""".format('s' if self.__ssl else '', self.__config['host'], self.__config['port']))
         while self.__running:
             try:
                 conn, addr = self.__socket.accept()
-                thread = threading.Thread(target=self.__handle_client, args=[conn, addr])
+                thread = Thread(target=self.__handle_client, args=[conn, addr])
                 thread.daemon = True
                 thread.start()
             except:
@@ -78,12 +78,6 @@ class liteapi:
                 requestClass._BaseAPIRequest__methods_keys = []
             requestClass._BaseAPIRequest__uriVars = {}
 
-            for methodnam in LITEAPI_SUPPORTED_REQUEST_METHODS:
-                if methodnam.lower() in dir(requestClass):
-                    requestClass._BaseAPIRequest__methods[methodnam] = method = APIMethod.create(methodFunc=getattr(requestClass, methodnam.lower()))
-                    setattr(requestClass, methodnam.lower(), method)
-                    requestClass._BaseAPIRequest__methods_keys.append(methodnam)
-            
             ms = re.findall('\{(([^:}]+)(:(str|int|float))?)\}', regex)
             for m in ms:
                 if len(m) > 3 and m[3] in ['int', 'float']:
@@ -92,7 +86,7 @@ class liteapi:
                         if m[1] not in requestClass._BaseAPIRequest__uriVars:
                             requestClass._BaseAPIRequest__uriVars[m[1]] = int
                     elif m[3] == 'float':
-                        regex = regex.replace('{{{}}}'.format(m[0]), r'([0-9]+\.[0-9]*|[0-9]*\.[0-9]+)')
+                        regex = regex.replace('{{{}}}'.format(m[0]), r'([0-9]+\.[0-9]*|[0-9]*\.[0-9]+|[0-9]+)')
                         if m[1] not in requestClass._BaseAPIRequest__uriVars:
                             requestClass._BaseAPIRequest__uriVars[m[1]] = float
                 else:
@@ -100,7 +94,21 @@ class liteapi:
                     if m[1] not in requestClass._BaseAPIRequest__uriVars:
                         requestClass._BaseAPIRequest__uriVars[m[1]] = str
                 regex = regex.replace('{{{}}}'.format(m[0]), '([0-9]+)' if m[3] == 'int' else '([^/?&]+?)')
+
+            for methodnam in LITEAPI_SUPPORTED_REQUEST_METHODS:
+                if methodnam.lower() in dir(requestClass):
+                    requestClass._BaseAPIRequest__methods[methodnam] = method = APIMethod.create(methodFunc=getattr(requestClass, methodnam.lower()))
+                    args = {}
+                    for arg in requestClass._BaseAPIRequest__uriVars:
+                        args[arg] = requestClass._BaseAPIRequest__uriVars[arg]
+                    args.update(method.args)
+                    method.args = args
+                    setattr(requestClass, methodnam.lower(), method)
+                    requestClass._BaseAPIRequest__methods_keys.append(methodnam)
+
             self.__request[regex] = requestClass
+            if(requestClass._hasDoc):
+                print(f'API {requestClass._BaseAPIRequest__definition} is registered')
         return inner
     def extend_supported_request_content_types(self, mimetype, parser_function, override = False, request_property = 'obj'):
         http_request.extend_supported_content_types(mimetype, parser_function, override, request_property)
@@ -114,7 +122,7 @@ class liteapi:
         while True:
             try:
                 if not stime:
-                    stime =  time.time()
+                    stime =  time()
                 part = sock.recv(BUFF_SIZE)
                 request_data += part
                 if len(part) < BUFF_SIZE:
@@ -122,7 +130,7 @@ class liteapi:
             except socket.error as e:
                 err = e.args[0]
                 if err in (errno.EAGAIN, errno.EWOULDBLOCK):
-                    stime =  time.time()
+                    stime =  time()
                     continue
         if not request_data:
             sock.close()
@@ -150,21 +158,22 @@ class liteapi:
                     if request.method not in self.__request[uriRegex]._BaseAPIRequest__methods and (request.method != 'HEAD' or (request.method == 'HEAD' and 'GET' not in self.__request[uriRegex]._BaseAPIRequest__methods)):
                         raise APIException(NOT_IMPLEMENTED)
                     else:
+                        var_keys = [k for k in self.__request[uriRegex]._BaseAPIRequest__uriVars.keys()]
                         for i in range(len(self.__request[uriRegex]._BaseAPIRequest__uriVars)):
-                            variable = [k for k in self.__request[uriRegex]._BaseAPIRequest__uriVars.keys()][i]
-                            vars[variable] = self.__request[uriRegex]._BaseAPIRequest__uriVars[variable](ms[i + 1])
+                            vars[var_keys[i]] = self.__request[uriRegex]._BaseAPIRequest__uriVars[var_keys[i]](ms[i + 1])
                     break
             if not found:
                 raise APIException(NOT_FOUND)
             
+            request.parseData()
+
             response_code = RESPONSE_OK
             response_status = RETURN_STATUS(response_code)
             copyRequest = self.__request[uriRegex]()
+            copyRequest.app = self
             copyRequest._BaseAPIRequest__request = request
             copyRequest._BaseAPIRequest__response = http_response()
             copyRequest.client_address = addr[0]
-
-            request.parseData()
             
             response_data = copyRequest.response.getResponse(copyRequest._BaseAPIRequest__methods[request.method if request.method != 'HEAD' else 'GET'](copyRequest, **vars))
             response_header = copyRequest.response.responseHeader
@@ -189,25 +198,25 @@ class liteapi:
         if(request.method != 'HEAD'):
             response_bytes += response_data
         sock.sendall(response_bytes)
-        response_time = round(time.time() - stime, 5)
+        response_time = round(time() - stime, 5)
         print("{} - Request from {}: {} {} {}, {}{}\033[0m, {}s".format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), addr[0], request.method, request.uri, request.version, '\033[92m' if response_code == RESPONSE_OK else '\033[91m',RETURN_STATUS(response_code), response_time))
         sock.shutdown(socket.SHUT_WR)
         sock.close()
     def __handle_signal(self, signum, frame):
-        if signum == signal.SIGINT:
+        if signum == SIGINT:
             print('Received Ctrl+C signal')
             self.__running = False
-        if signum == signal.SIGTERM:
+        if signum == SIGTERM:
             print('Process Killed')
             self.__running = False
     def __init_socket(self):
         server = socket.socket()
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server.setblocking(False)
+        server.settimeout(1)
         server.bind((self.__config['host'], self.__config['port']))
         server.listen(5)
-        signal.signal(signal.SIGINT, self.__handle_signal)
-        signal.signal(signal.SIGTERM, self.__handle_signal)
+        signal(SIGINT, self.__handle_signal)
+        signal(SIGTERM, self.__handle_signal)
         if 'ssl_certfile' in self.__config or 'ssl_keyfile' in self.__config:
             import ssl
             if 'ssl_certfile' not in self.__config:

@@ -1,16 +1,16 @@
 from datetime import date, datetime, time
 from inspect import signature
-import json
-import re
+from json import dumps
+from re import fullmatch
 from .APIModel import APIJSONEncoder, APIModel, _repr
 from ._internals import _mediaDict, _headerDict, _parse_content_type, _is_valid_token, _is_valid_cookie_value_octet, _is_valid_cookie_path
 
 def _application_json(data, charset = 'utf-8'):
     ret = ''
     if type(data) in [int, float, bool, str]:
-        ret = json.dumps({'data': data})
+        ret = dumps({'data': data})
     elif type(data) in [list, tuple, dict] or issubclass(type(data), APIModel):
-        ret = json.dumps(data, cls=APIJSONEncoder)
+        ret = dumps(data, cls=APIJSONEncoder)
     else:
         raise Exception(f'Unsupported response data: returned type {_repr(data)}')
     return ret.encode(charset)
@@ -94,7 +94,7 @@ class _cookies:
     
     @domain.setter
     def domain(self, domain):
-        if domain and not re.fullmatch('[a-zA-Z][a-zA-Z0-9\-]*(?:\.[a-zA-Z][a-zA-Z0-9\-]*)*', domain):
+        if domain and not fullmatch('[a-zA-Z][a-zA-Z0-9\-]*(?:\.[a-zA-Z][a-zA-Z0-9\-]*)*', domain):
             raise Exception(f'Invalid Domain value for cookie "{self.__name}"')
         self.__domain = domain if '__Host-' not in self.__name else None
     

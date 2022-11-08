@@ -1,4 +1,3 @@
-from unicodedata import category
 # Internal Helper Classes
 
 class _headerDict(dict):
