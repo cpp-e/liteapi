@@ -33,7 +33,7 @@ class _GenericVerifierAlias:
         return self._checkerFunc(self, obj)
 
 class VerifierClass:
-    __slots__ = ('_name', '_argc', '_args', '_callable', '__call__', '__getitem__', '_checkerFunc')
+    __slots__ = ('_name', '_argc', '_callable', '__call__', '__getitem__', '_checkerFunc')
     def __init__(self, name, argc = None, callable=False, checkerFunction = None):
         self._name = name
         self._argc = argc
@@ -56,6 +56,9 @@ def checkRange(self, obj):
             argtypes = None
             break
     return argtypes and isinstance(obj, (int, argtypes)) and obj >= self.args[0] and obj <= self.args[1]
+
+def isVerifierClass(cls):
+    return hasattr(cls, '__origin__') and isinstance(cls.__origin__, VerifierClass)
 
 Range = VerifierClass('Range', 2, callable=True, checkerFunction=checkRange)
 In = VerifierClass('In', checkerFunction=lambda self, obj: obj in self.args)

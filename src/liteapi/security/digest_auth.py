@@ -86,6 +86,7 @@ def doDigestAuth(checkerFunc, **kwargs):
             auth_options += ', nonce="{}"'.format(nonce_handle())
             raise UNAUTHORIZED_ERROR({'WWW-Authenticate': '{}{}'.format(AUTH_SCHEME, auth_options)})
         return {'username': params['username']}
+    digestAuth.__name__ = 'digest'
     return digestAuth
 
 RequireDigestAuth = RequireAuth(doDigestAuth)

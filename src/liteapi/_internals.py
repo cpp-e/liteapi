@@ -1,14 +1,32 @@
-# Internal Helper Classes
+from typing import Union
 
+# Internal Helper Classes
 class _headerDict(dict):
+    _lowerKeys = None
+    def __init__(self, *args, **kwargs):
+        self._lowerKeys = {k.lower():k for k,v in args[0].items()} if len(args) == 1 and isinstance(args[0], dict) else {}
+        super().__init__(*args, **kwargs)
     def __getitem__(self, __key):
-        return super().__getitem__(__key.lower())
+        return super().__getitem__(self._lowerKeys[__key.lower()])
     def __setitem__(self, __key, __value):
-        super().__setitem__(__key.lower(), __value)
+        if self._lowerKeys.__contains__(__key.lower()):
+            super().__delitem__(self._lowerKeys[__key.lower()])
+        self._lowerKeys[__key.lower()] = __key
+        super().__setitem__(__key, __value)
     def __contains__(self, __o):
-        return super().__contains__(__o.lower())
+        return self._lowerKeys.__contains__(__o.lower())
     def __delitem__(self, __key):
-        super().__delitem__(__key.lower())
+        super().__delitem__(self._lowerKeys[__key.lower()])
+        self._lowerKeys.__delitem__(__key.lower())
+    def update(self, __m):
+        for k in __m:
+            if self._lowerKeys.__contains__(k.lower()):
+                super().__delitem__(self._lowerKeys[k.lower()])
+                self._lowerKeys[k.lower()] = k
+        super().update(__m)
+    def clear(self):
+        self._lowerKeys.clear()
+        super().clear()
 
 class _mediaDict(dict):
     def __getitem__(self, __key):
@@ -56,6 +74,7 @@ def _is_valid_token(_token):
     for c in _token:
         if _is_CTL_char(c) or _is_separator_char(c):
             _valid = False
+            break
     return _valid
 
 def _is_valid_cookie_value_octet(_octet):
@@ -66,4 +85,20 @@ def _is_valid_cookie_path(_path):
     for c in _path:
         if _is_CTL_char(c) or c == ";":
             _valid = False
+            break
     return _valid
+
+def _isUnion(obj):
+    return hasattr(obj, '__origin__') and obj.__origin__ is Union
+
+def _repr(obj):
+    if isinstance(obj, type):
+        return obj.__qualname__ if obj.__qualname__ != 'tuple' else 'list'
+    if _isUnion(obj):
+        isOptional = type(None) in obj.__args__
+        args = " | ".join([_repr(t) for t in obj.__args__ if t is not type(None)])
+        return f'Optional({args})' if isOptional else args
+    return repr(obj)
+
+def _isinstance(obj, cls):
+    return isinstance(obj, cls.__args__) if _isUnion(cls) else isinstance(obj, cls)

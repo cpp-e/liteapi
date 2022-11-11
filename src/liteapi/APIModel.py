@@ -1,24 +1,12 @@
 from .verifiers.exception import *
+from .docs.annotate import isAnnotate
+from ._internals import _repr,_isUnion, _isinstance
 from json import JSONEncoder
-from typing import Union
-
-def _isUnion(obj):
-    return hasattr(obj, '__origin__') and obj.__origin__ is Union
-
-def _repr(obj):
-    if isinstance(obj, type):
-        if obj.__module__ == 'builtins' or obj.__module__ == '__main__':
-            return obj.__qualname__
-        return f'{obj.__module__}.{obj.__qualname__}'
-    if _isUnion(obj):
-        return " | ".join([_repr(t) for t in obj.__args__])
-    return repr(obj)
-
-def _isinstance(obj, cls):
-    return isinstance(obj, cls.__args__) if _isUnion(cls) else isinstance(obj, cls)
 
 def _checkValue(annotation, value):
-    if annotation is float and isinstance(value, int):
+    if isAnnotate(annotation):
+        annotation = annotation.cls
+    if annotation == float and isinstance(value, int):
         return float(value)
     if _isUnion(annotation):
         for a in annotation.__args__:
@@ -53,4 +41,4 @@ class APIModel:
 
 class APIJSONEncoder(JSONEncoder):
     def default(self, o):
-        return o.__dict__ if isinstance(o, APIModel) else super().default(o)
+        return {k:v for k,v in o.__dict__.items() if v is not None} if isinstance(o, APIModel) else super().default(o)

@@ -23,6 +23,7 @@ def doBasicAuth(checkerFunc, **kwargs):
         if not checkerFunc(**{k:v for k,v in params.items() if k in signature(checkerFunc).parameters}):
             raise UNAUTHORIZED_ERROR({'WWW-Authenticate': '{}{}'.format(AUTH_SCHEME, realm)})
         return {'username': cred[0]}
+    basicAuth.__name__ = 'basic'
     return basicAuth
 
 RequireBasicAuth = RequireAuth(doBasicAuth)

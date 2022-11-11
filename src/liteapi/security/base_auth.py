@@ -13,7 +13,7 @@ def RequireAuth(authFunc):
             elif callable(requestClassorMethod):
                 funname = requestClassorMethod.__name__
                 if funname.upper() in LITEAPI_SUPPORTED_REQUEST_METHODS:
-                    return APIMethod(methodFunc=requestClassorMethod, authFunc=authFunc(checkerFunc, **kwargs))
+                    return APIMethod.create(methodFunc=requestClassorMethod, authFunc=authFunc(checkerFunc, **kwargs))
 
         return inner
     return AuthFunction

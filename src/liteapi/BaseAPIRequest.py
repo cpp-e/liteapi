@@ -1,6 +1,7 @@
 from inspect import signature
 from .verifiers.exception import *
 from .APIModel import APIModel
+from re import search, sub
 
 class APIAuth:
     '''
@@ -8,10 +9,12 @@ class APIAuth:
     '''
 
 class APIMethod:
+    responses = None
     description = None
     methodFunc = None
     authenticator = None
     args = None
+    returnType = None
 
     @staticmethod
     def create(methodFunc, authFunc = None, description = None):
@@ -28,9 +31,16 @@ class APIMethod:
     def __init__(self, methodFunc, authFunc = None, description = None):
         self.methodFunc = methodFunc
         self.authenticator = authFunc
-        self.description = description
         self.args = {}
-        self.returnType = None
+        self.__doc__ = methodFunc.__doc__
+        self.description = description
+        self.responses = []
+        if self.__doc__:
+            m = search(r'/breif:([^$\r\n]+)', methodFunc.__doc__)
+            if m:
+                self.description = m.group(1).strip()
+                self.__doc__ = self.__doc__.replace(m.group(0),"")
+            self.__doc__ = sub('[\r\n]', '', self.__doc__).strip()
 
         for a in self.methodFunc.__annotations__:
             if self.methodFunc.__annotations__[a] is not APIAuth:
@@ -54,7 +64,7 @@ class APIMethod:
                 authData = APIAuth()
                 authData.__dict__.update(authParams)
                 nkwargs[arg] = authData
-            elif issubclass(methodArgs[arg].annotation, APIModel) or methodArgs[arg].annotation in [list, tuple]:
+            elif issubclass(methodArgs[arg].annotation, APIModel) or methodArgs[arg].annotation in (list, tuple):
                 try:
                     nkwargs[arg] = methodArgs[arg].annotation(args[0].request.obj)
                 except Exception as e:
@@ -109,3 +119,16 @@ class BaseAPIRequest:
 
     def __getitem__(self, k):
         return self.__request[k]
+
+def addResponse(responseCode:int, responseMessage:str, returnCls = None):
+    def inner(requestMethod):
+        method = APIMethod.create(methodFunc=requestMethod)
+        if isinstance(responseCode, int) and isinstance(responseMessage, str):
+            if isinstance(returnCls, type) and issubclass(returnCls, APIModel):
+                method.responses.append((responseCode, responseMessage, returnCls))
+            else:
+                method.responses.append((responseCode, responseMessage))
+        else:
+            raise Exception('responseCode must be an integer and responseMessage must be a string')
+        return method
+    return inner

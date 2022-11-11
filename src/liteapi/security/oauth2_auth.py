@@ -22,11 +22,12 @@ def doOAuth2TokenAuth(checkerFunc, **kwargs):
         if ('Authorization' in self.request.headers \
             and ('access_token' in self.request.form or 'access_token'in self.request.query_string)) \
             or ('access_token' in self.request.form and 'access_token'in self.request.query_string):
-            raise INVALID_REQUEST_ERROR(error_description='access token received using multiple methods')
+            raise INVALID_REQUEST_ERROR(error_description='access_token received using multiple methods')
         params['access_token'] = self.request.headers['Authorization'][self.request.headers['Authorization'].rfind(' ')+1:] if 'Authorization' in self.request.headers else self.request.form['access_token'] if 'access_token' in self.request.form else self.request.query_string['access_token']
         if not checkerFunc(**{k:v for k,v in params.items() if k in signature(checkerFunc).parameters}):
             raise INVALID_TOKEN_ERROR(**params)
         return params
+    oAuth2TokenAuth.__name__ = 'OAuth2'
     return oAuth2TokenAuth
 
 def doOAuth2PassAuth(checkerFunc, **kwargs):
@@ -54,7 +55,8 @@ def doOAuth2PassAuth(checkerFunc, **kwargs):
             params['client_secret'] = cred[1]
         if not checkerFunc(**{k:v for k,v in params.items() if k in signature(checkerFunc).parameters}):
             raise INVALID_GRANT_ERROR(error_description = 'Invalid Credentials')
-        return {k:v for k,v in params.items() if k in ['client_id', 'scope', 'username']}
+        return {k:v for k,v in params.items() if k in ('client_id', 'scope', 'username')}
+    oAuth2PassAuth.__name__ = 'OAuth2'
     return oAuth2PassAuth
 
 RequireOAuth2Token = RequireAuth(doOAuth2TokenAuth)

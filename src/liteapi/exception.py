@@ -1,27 +1,28 @@
 from .errno import *
+from ._internals import _headerDict
+
 class APIException(Exception):
     def __init__(self, code, *args, **kwargs):
         self.code = code
         self.strerror = strerror(code)
         self.response = kwargs
-        self.__header = {'content-type': 'application/json; charset=utf-8'}
+        self.__header = _headerDict({'Content-Type': 'application/json; charset=utf-8'})
         if args:
             i = 0
             if isinstance(args[i], str):
                 self.strerror = args[i]
                 i += 1
-            while i < len(args) and isinstance(args[i], dict):
-                self.__header.update(args[i])
+            while i < len(args):
+                if isinstance(args[i], dict):
+                    self.__header.update(args[i])
+                elif issubclass(type(args[i]), APIModel):
+                    self.response = args[i]
                 i += 1
         super().__init__(*args)
     
     @property
-    def responseHeader(self):
-        header = ""
-        for key in self.__header:
-            header = '{}{}: {}\r\n'.format(header, key, self.__header[key])
-        return header
-
+    def header(self):
+        return self.__header
 
 APIError = APIException
 

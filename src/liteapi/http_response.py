@@ -2,14 +2,14 @@ from datetime import date, datetime, time
 from inspect import signature
 from json import dumps
 from re import fullmatch
-from .APIModel import APIJSONEncoder, APIModel, _repr
-from ._internals import _mediaDict, _headerDict, _parse_content_type, _is_valid_token, _is_valid_cookie_value_octet, _is_valid_cookie_path
+from .APIModel import APIJSONEncoder, APIModel
+from ._internals import _mediaDict, _headerDict, _parse_content_type, _is_valid_token, _is_valid_cookie_value_octet, _is_valid_cookie_path, _repr
 
 def _application_json(data, charset = 'utf-8'):
     ret = ''
-    if type(data) in [int, float, bool, str]:
+    if isinstance(data, (int, float, bool, str)):
         ret = dumps({'data': data})
-    elif type(data) in [list, tuple, dict] or issubclass(type(data), APIModel):
+    elif isinstance(data, (list, tuple, dict)) or issubclass(type(data), APIModel):
         ret = dumps(data, cls=APIJSONEncoder)
     else:
         raise Exception(f'Unsupported response data: returned type {_repr(data)}')
@@ -138,6 +138,7 @@ class http_response:
     def __init__(self):
         self.__cookies = {}
         self.__headers = _headerDict()
+        self.__responseCode = 200
     
     @staticmethod
     def extend_supported_content_types(mimetype, parser_function, override = False):
@@ -154,6 +155,16 @@ class http_response:
     @property
     def headers(self):
         return self.__headers
+    
+    @property
+    def response_code(self):
+        return self.__responseCode
+
+    @response_code.setter
+    def response_code(self, value):
+        if not isinstance(value, int) or value < 100 or value >= 600:
+            raise Exception('Invalid Response Code')
+        self.__responseCode = value
 
     def __contains__(self, name):
         return name in self.__headers
@@ -165,8 +176,10 @@ class http_response:
         self.__headers.__delitem__(__key)
     
     def getResponse(self, data):
+        if data is None:
+            return b''
         if 'content-type' not in self.__headers:
-            self.__headers['content-type'] = 'application/json; charset=utf-8'
+            self.__headers['Content-Type'] = 'application/json; charset=utf-8'
         content_type, content_type_params = _parse_content_type(self.__headers['content-type'])
         if content_type in _response_media_types:
             func = _response_media_types[content_type]

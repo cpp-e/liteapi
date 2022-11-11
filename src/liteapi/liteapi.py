@@ -1,4 +1,4 @@
-import re, socket, errno, select
+import re, socket, errno
 from threading import Thread
 from signal import signal, SIGINT, SIGTERM
 from datetime import datetime
@@ -10,9 +10,6 @@ from .errno import *
 from .exception import *
 from .docs.docs import _docs
 from . import LITEAPI_SUPPORTED_REQUEST_METHODS
-
-RETURN_STATUS = lambda c : '{} {}'.format(c, strerror(c))
-RETURN_STATUS_OBJ = lambda c : {'code': c, 'message': strerror(c)}
 
 class liteapi:
     class __version:
@@ -80,7 +77,7 @@ class liteapi:
 
             ms = re.findall('\{(([^:}]+)(:(str|int|float))?)\}', regex)
             for m in ms:
-                if len(m) > 3 and m[3] in ['int', 'float']:
+                if len(m) > 3 and m[3] in ('int', 'float'):
                     if m[3] == 'int':
                         regex = regex.replace('{{{}}}'.format(m[0]), '([0-9]+)')
                         if m[1] not in requestClass._BaseAPIRequest__uriVars:
@@ -103,6 +100,11 @@ class liteapi:
                         args[arg] = requestClass._BaseAPIRequest__uriVars[arg]
                     args.update(method.args)
                     method.args = args
+                    if len(method.responses) == 0:
+                        if isinstance(method.returnType, type) and issubclass(method.returnType, APIModel):
+                            method.responses.append((200, "Successful Response", method.returnType))
+                        else:
+                            method.responses.append((200, "Successful Response"))
                     setattr(requestClass, methodnam.lower(), method)
                     requestClass._BaseAPIRequest__methods_keys.append(methodnam)
 
@@ -117,7 +119,7 @@ class liteapi:
     def __handle_client(self, sock, addr):
         BUFF_SIZE = 4096
         request_data = b''
-        response_format = 'HTTP/1.1 {}\r\ncontent-length: {}\r\n{}\r\n'
+        response_format = 'HTTP/1.1 {}\r\nContent-Length: {}\r\n{}\r\n'
         stime = 0
         while True:
             try:
@@ -138,7 +140,7 @@ class liteapi:
         
         try:
             request = http_request(request_data)
-        except:
+        except Exception as e:
             sock.close()
             return
         
@@ -167,8 +169,6 @@ class liteapi:
             
             request.parseData()
 
-            response_code = RESPONSE_OK
-            response_status = RETURN_STATUS(response_code)
             copyRequest = self.__request[uriRegex]()
             copyRequest.app = self
             copyRequest._BaseAPIRequest__request = request
@@ -176,13 +176,16 @@ class liteapi:
             copyRequest.client_address = addr[0]
             
             response_data = copyRequest.response.getResponse(copyRequest._BaseAPIRequest__methods[request.method if request.method != 'HEAD' else 'GET'](copyRequest, **vars))
+            response_code = copyRequest.response.response_code
+            response_status = RETURN_STATUS(response_code)
             response_header = copyRequest.response.responseHeader
             
         except APIException as e:
             response_code = e.code
             response_status = RETURN_STATUS(response_code)
-            
+
             response = http_response()
+            response.headers.update(e.header)
             response_data = response.getResponse(e.response if e.response else RETURN_STATUS_OBJ(response_code))
             response_header = response.responseHeader
         except Exception as e:
@@ -199,7 +202,7 @@ class liteapi:
             response_bytes += response_data
         sock.sendall(response_bytes)
         response_time = round(time() - stime, 5)
-        print("{} - Request from {}: {} {} {}, {}{}\033[0m, {}s".format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), addr[0], request.method, request.uri, request.version, '\033[92m' if response_code == RESPONSE_OK else '\033[91m',RETURN_STATUS(response_code), response_time))
+        print("{} - Request from {}: {} {} {}, {}{}\033[0m, {}s".format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), addr[0], request.method, request.uri, request.version, '\033[92m' if response_code >= 200 and response_code < 300 else '\033[91m' if response_code >=400 else '',RETURN_STATUS(response_code), response_time))
         sock.shutdown(socket.SHUT_WR)
         sock.close()
     def __handle_signal(self, signum, frame):

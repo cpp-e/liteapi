@@ -78,14 +78,14 @@ class http_request:
         headerEnd = request_data.find(b'\r\n\r\n')
         self.__headers = _headerDict()
         while i < headerEnd:
-            if request_data[i] in [b' ', b'\t']:
+            if request_data[i] in (b' ', b'\t'):
                 i, value = _getASCIIToDelim(request_data, b'\r\n', i)
-                self.__headers[key] += ('; ' if key.lower() in ['cookie'] else ', ') + value.strip()
+                self.__headers[key] += ('; ' if key.lower() in ('cookie') else ', ') + value.strip()
             else:
                 i, key = _getASCIIToDelim(request_data, b': ', i)
                 i, value = _getASCIIToDelim(request_data, b'\r\n', i)
                 if key in self.__headers:
-                    self.__headers[key] += ('; ' if key.lower() in ['cookie'] else ', ') + value
+                    self.__headers[key] += ('; ' if key.lower() in ('cookie') else ', ') + value
                 else:
                     self.__headers[key] = value
         self.__data = request_data[i+2:]
@@ -121,7 +121,7 @@ class http_request:
             raise Exception('parser_function must be a callable function')
         if not override and mimetype in _media_types:
             raise Exception(f'mimetype {mimetype} already defined in request mimetypes')
-        _media_types[mimetype] = {'parser': parser_function, 'property': inst_property if inst_property in ['obj', 'json', 'form'] else 'obj'}
+        _media_types[mimetype] = {'parser': parser_function, 'property': inst_property if inst_property in ('obj', 'json', 'form') else 'obj'}
     
     def parseData(self):
         if not self.__data:
