@@ -22,7 +22,7 @@ class _headerDict(dict):
         for k in __m:
             if self._lowerKeys.__contains__(k.lower()):
                 super().__delitem__(self._lowerKeys[k.lower()])
-                self._lowerKeys[k.lower()] = k
+            self._lowerKeys[k.lower()] = k
         super().update(__m)
     def clear(self):
         self._lowerKeys.clear()
