@@ -24,6 +24,8 @@ def doBasicAuth(checkerFunc, **kwargs):
             raise UNAUTHORIZED_ERROR({'WWW-Authenticate': '{}{}'.format(AUTH_SCHEME, realm)})
         return {'username': cred[0]}
     basicAuth.__name__ = 'basic'
+    basicAuth._checker = checkerFunc
+    basicAuth._args = kwargs
     return basicAuth
 
 RequireBasicAuth = RequireAuth(doBasicAuth)

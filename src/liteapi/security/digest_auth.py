@@ -87,6 +87,8 @@ def doDigestAuth(checkerFunc, **kwargs):
             raise UNAUTHORIZED_ERROR({'WWW-Authenticate': '{}{}'.format(AUTH_SCHEME, auth_options)})
         return {'username': params['username']}
     digestAuth.__name__ = 'digest'
+    digestAuth._checker = checkerFunc
+    digestAuth._args = kwargs
     return digestAuth
 
 RequireDigestAuth = RequireAuth(doDigestAuth)

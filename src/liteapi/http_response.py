@@ -21,7 +21,7 @@ _response_media_types = _mediaDict({
 })
 
 class _cookies:
-    def __init__(self, name, value, expires = None, max_age = None, path = None, domain = None, secure = False, httponly = False):
+    def __init__(self, name, value, expires = None, max_age = None, path = None, domain = None, samesite='Lax', secure = False, httponly = False):
         if not isinstance(name, str) and not _is_valid_token(name):
             raise Exception(f'Cannot set cookie name to "{name}"; name cannot contain CTL characters or separators')
 
@@ -31,6 +31,7 @@ class _cookies:
         self.max_age = max_age
         self.path = path
         self.domain = domain
+        self.samesite = samesite
         self.secure = secure
         self.httponly = httponly
     
@@ -105,7 +106,7 @@ class _cookies:
     @secure.setter
     def secure(self, secure):
         if not isinstance(secure, bool):
-            raise Exception(f'Invalid Secure value for cookie "{self.__name}; expect boolean value"')
+            raise Exception(f'Invalid Secure value for cookie "{self.__name}"; expect boolean value')
         self.__secure = secure if '__Secure-' not in self.__name and '__Host-' not in self.__name else True
 
     @property
@@ -115,8 +116,20 @@ class _cookies:
     @httponly.setter
     def httponly(self, httponly):
         if not isinstance(httponly, bool):
-            raise Exception(f'Invalid HttpOnly value for cookie "{self.__name}; expect boolean value"')
+            raise Exception(f'Invalid HttpOnly value for cookie "{self.__name}"; expect boolean value')
         self.__httponly = httponly
+    
+    @property
+    def samesite(self):
+        return self.__samesite
+
+    @samesite.setter
+    def samesite(self, samesite):
+        if str(samesite).lower() not in ('strict', 'lax', 'none', None):
+            raise Exception(f'Invalid SameSite value for cookie "{self.__name}"; expect Strict, Lax, or None')
+        self.__samesite = str(samesite)
+        if self.__samesite.lower() == 'none':
+            self.secure = True
 
     def __str__(self):
         _str = f'{self.__name}={self.__value}'
@@ -128,6 +141,8 @@ class _cookies:
             _str += f'; Path={self.__path}'
         if self.__domain:
             _str += f'; Domain={self.__domain}'
+        if self.__samesite.lower() != 'lax':
+            _str += f'; SameSite={self.__samesite}'
         if self.__secure:
             _str += f'; Secure'
         if self.__httponly:
@@ -186,8 +201,8 @@ class http_response:
             return func(data, **{k:v for k,v in content_type_params.items() if k in signature(func).parameters})
         return f'{data}'.encode()
 
-    def setCookies(self, name, value, expires = None, max_age = None, path = None, domain = None, secure = False, httponly = False):
-        self.__cookies[name] = _cookies(name, value, expires, max_age, path, domain, secure, httponly)
+    def setCookies(self, name, value, expires = None, max_age = None, path = None, domain = None, samesite = 'Lax', secure = False, httponly = False):
+        self.__cookies[name] = _cookies(name, value, expires, max_age, path, domain, samesite, secure, httponly)
 
     @property
     def responseHeader(self):

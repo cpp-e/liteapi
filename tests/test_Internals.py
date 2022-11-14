@@ -1,27 +1,5 @@
-import traceback
+from test_common import *
 from liteapi._internals import _headerDict, _mediaDict, _params_parser, _parse_content_type
-
-fail = lambda msg: f'{msg} \033[91mFail\033[0m'
-success = lambda msg: f'{msg} \033[92mSucceed\033[0m'
-
-def test(_test, _msg = ''):
-    assert _test, fail(_msg)
-    print(success(_msg))
-
-def tryCallable(cls, *args, **kwargs):
-    try:
-        cls(*args, **kwargs)
-    except:
-        traceback.print_exc()
-        return False
-    return True
-
-def tryFailCallable(cls, *args, **kwargs):
-    try:
-        cls(*args, **kwargs)
-    except:
-        return True
-    return False
 
 def test_headerDict():
     try:
@@ -35,6 +13,7 @@ def test_headerDict():
         myDict.update({'keY1': 'value', 'Key2': 'value'})
         test(len(myDict) == 2, 'Updating _headerDict object')
         test([*myDict.keys()][0] == 'keY1', 'Actual key name updated under _headerDict object')
+        test('key2' in myDict, 'Check if Key2 can be accessed as case insinsitive _headerDict object')
         test(tryCallable(_headerDict, myDict), 'Creating _headerDict object with other dict as parameter')
         myDict2 = _headerDict(myDict)
         test(myDict2['KEY2'] == 'value', 'Copying _headerDict object')
@@ -86,7 +65,10 @@ def test_parse_content_type():
         return False
     return True
 
-test(test_headerDict(), 'Testing _headerDict class')
-test(test_mediaDict(), 'Testing _mediaDict class')
-test(test_params_parser(), 'Testing _params_parser function')
-test(test_parse_content_type(), 'Testing _parse_content_type function')
+def all():
+    test(test_headerDict(), 'Testing _headerDict class')
+    test(test_mediaDict(), 'Testing _mediaDict class')
+    test(test_params_parser(), 'Testing _params_parser function')
+    test(test_parse_content_type(), 'Testing _parse_content_type function')
+
+all()

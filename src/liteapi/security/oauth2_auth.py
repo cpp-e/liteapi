@@ -28,6 +28,8 @@ def doOAuth2TokenAuth(checkerFunc, **kwargs):
             raise INVALID_TOKEN_ERROR(**params)
         return params
     oAuth2TokenAuth.__name__ = 'OAuth2'
+    oAuth2TokenAuth._checker = checkerFunc
+    oAuth2TokenAuth._args = kwargs
     return oAuth2TokenAuth
 
 def doOAuth2PassAuth(checkerFunc, **kwargs):
@@ -57,6 +59,8 @@ def doOAuth2PassAuth(checkerFunc, **kwargs):
             raise INVALID_GRANT_ERROR(error_description = 'Invalid Credentials')
         return {k:v for k,v in params.items() if k in ('client_id', 'scope', 'username')}
     oAuth2PassAuth.__name__ = 'OAuth2'
+    oAuth2PassAuth._checker = checkerFunc
+    oAuth2PassAuth._args = kwargs
     return oAuth2PassAuth
 
 RequireOAuth2Token = RequireAuth(doOAuth2TokenAuth)
