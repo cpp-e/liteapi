@@ -141,8 +141,8 @@ from .APIModel import APIModel
 from .docs.annotate import Annotate
 
 class ResponseStatus(APIModel):
-    code: Annotate(int, doc="Response Status Code", example=200)
-    message: Annotate(str, doc="Response Status Message", example="OK")
+    code: Annotate(int, doc="HTTP Response Code")
+    message: Annotate(str, doc="Response Status Message")
 
 RETURN_STATUS = lambda c : '{} {}'.format(c, strerror(c))
 RETURN_STATUS_OBJ = lambda c : ResponseStatus({'code': c, 'message': strerror(c)})

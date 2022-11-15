@@ -1,6 +1,5 @@
-from .verifiers.exception import *
 from .docs.annotate import isAnnotate
-from ._internals import _repr,_isUnion, _isinstance
+from ._internals import _repr, _isUnion, _isinstance
 from json import JSONEncoder
 
 def _checkValue(annotation, value):
@@ -23,7 +22,15 @@ class APIModel:
     '''
     Base class for API Data
     '''
-    def __init__(self, json_obj:dict):
+    def __init__(self, json_obj:dict = None):
+        if json_obj is None:
+            return
+        if isinstance(json_obj, dict):
+            self.load(json_obj)
+        elif isinstance(json_obj, object):
+            self.load(json_obj.__dict__)
+    
+    def load(self, json_obj:dict):
         for a in json_obj:
             if a not in self.__annotations__:
                 raise Exception(f'reply from class "{_repr(self.__class__)}": object contains an invalid parameter: "{a}"')

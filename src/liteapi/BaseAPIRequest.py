@@ -10,6 +10,7 @@ class APIAuth:
 
 class APIMethod:
     responses = None
+    defaultResponse = False
     description = None
     methodFunc = None
     authenticator = None
@@ -70,8 +71,22 @@ class APIMethod:
                 except Exception as e:
                     print(str(e))
                     raise BAD_REQUEST_ERROR(error="Invalid Data", error_description=str(e))
-
-        return self.methodFunc(*args, **nkwargs)
+        returned = self.methodFunc(*args, **nkwargs)
+        returnCode = None
+        if isinstance(returned, tuple) and len(returned) == 2 \
+           and isinstance(returned[0], int) and returned[0] >= 100 and returned[0] < 600:
+            returnCode, returned = returned
+        if not self.defaultResponse and self.responses:
+            for r in self.responses:
+                if len(r) == 3:
+                    if isinstance(returned, r[2]) and (not returnCode or returnCode == r[0]):
+                        return r[0], returned
+                else:
+                    return r[0], returned
+            raise Exception(f'Invalid {self.methodFunc.__name__} response')
+        elif self.returnType:
+            return self.returnType(returned) if not returnCode else (returnCode, self.returnType(returned))
+        return returned if not returnCode else (returnCode, returned)
 
 class BaseAPIRequest:
     __definition = None

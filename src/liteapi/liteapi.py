@@ -4,7 +4,7 @@ from signal import signal, SIGINT, SIGTERM
 from datetime import datetime
 from time import time
 from .BaseAPIRequest import BaseAPIRequest, APIMethod
-from .http_request import http_request
+from .http_request import http_request, parse_unicode_value
 from .http_response import http_response
 from .errno import *
 from .exception import *
@@ -68,16 +68,16 @@ class liteapi:
                 raise RuntimeError('{} must be a subclass of BaseAPIRequest'.format((requestClass).__name__))
             hasQuery = uri.find('?')
             regex = uri[:hasQuery] if hasQuery > 0 else uri
-            requestClass._BaseAPIRequest__definition = re.sub(':(str|int|float)', '', regex)
+            requestClass._BaseAPIRequest__definition = re.sub('{([^:}]+):(str|int|float|path)}', r'{\1}', regex)
             if not requestClass._BaseAPIRequest__methods:
                 requestClass._BaseAPIRequest__methods = {}
             if not requestClass._BaseAPIRequest__methods_keys:
                 requestClass._BaseAPIRequest__methods_keys = []
             requestClass._BaseAPIRequest__uriVars = {}
 
-            ms = re.findall('\{(([^:}]+)(:(str|int|float))?)\}', regex)
+            ms = re.findall('\{(([^:}]+)(:(str|int|float|path))?)\}', regex)
             for m in ms:
-                if len(m) > 3 and m[3] in ('int', 'float'):
+                if len(m) > 3 and m[3] in ('int', 'float', 'path'):
                     if m[3] == 'int':
                         regex = regex.replace('{{{}}}'.format(m[0]), '([0-9]+)')
                         if m[1] not in requestClass._BaseAPIRequest__uriVars:
@@ -86,6 +86,10 @@ class liteapi:
                         regex = regex.replace('{{{}}}'.format(m[0]), r'([0-9]+\.[0-9]*|[0-9]*\.[0-9]+|[0-9]+)')
                         if m[1] not in requestClass._BaseAPIRequest__uriVars:
                             requestClass._BaseAPIRequest__uriVars[m[1]] = float
+                    elif m[3] == 'path':
+                        regex = regex.replace(f'{{{m[0]}}}', '([^?&]+)')
+                        if m[1] not in requestClass._BaseAPIRequest__uriVars:
+                            requestClass._BaseAPIRequest__uriVars[m[1]] = str
                 else:
                     regex = regex.replace('{{{}}}'.format(m[0]), '([^/?&]+?)')
                     if m[1] not in requestClass._BaseAPIRequest__uriVars:
@@ -105,6 +109,7 @@ class liteapi:
                             method.responses.append((200, "Successful Response", method.returnType))
                         else:
                             method.responses.append((200, "Successful Response"))
+                        method.defaultResponse = True
                     setattr(requestClass, methodnam.lower(), method)
                     requestClass._BaseAPIRequest__methods_keys.append(methodnam)
 
@@ -162,7 +167,7 @@ class liteapi:
                     else:
                         var_keys = [k for k in self.__request[uriRegex]._BaseAPIRequest__uriVars.keys()]
                         for i in range(len(self.__request[uriRegex]._BaseAPIRequest__uriVars)):
-                            vars[var_keys[i]] = self.__request[uriRegex]._BaseAPIRequest__uriVars[var_keys[i]](ms[i + 1])
+                            vars[var_keys[i]] = parse_unicode_value(self.__request[uriRegex]._BaseAPIRequest__uriVars[var_keys[i]](ms[i + 1]))
                     break
             if not found:
                 raise APIException(NOT_FOUND)

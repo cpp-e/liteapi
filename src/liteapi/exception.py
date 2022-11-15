@@ -6,7 +6,7 @@ class APIException(Exception):
         self.code = code
         self.strerror = strerror(code)
         self.response = kwargs
-        self.__header = _headerDict({'Content-Type': 'application/json; charset=utf-8'})
+        self.__header = _headerDict()
         if args:
             i = 0
             if isinstance(args[i], str):

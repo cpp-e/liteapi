@@ -9,7 +9,7 @@ def _application_json(data, charset = 'utf-8'):
     ret = ''
     if isinstance(data, (int, float, bool, str)):
         ret = dumps({'data': data})
-    elif isinstance(data, (list, tuple, dict)) or issubclass(type(data), APIModel):
+    elif isinstance(data, (list, dict)) or issubclass(type(data), APIModel):
         ret = dumps(data, cls=APIJSONEncoder)
     else:
         raise Exception(f'Unsupported response data: returned type {_repr(data)}')
@@ -193,6 +193,9 @@ class http_response:
     def getResponse(self, data):
         if data is None:
             return b''
+        if type(data) is tuple and len(data) == 2 \
+           and isinstance(data[0], int) and data[0] >= 100 and data[0] < 600:
+            self.__responseCode, data = data
         if 'content-type' not in self.__headers:
             self.__headers['Content-Type'] = 'application/json; charset=utf-8'
         content_type, content_type_params = _parse_content_type(self.__headers['content-type'])
