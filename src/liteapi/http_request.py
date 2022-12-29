@@ -4,6 +4,8 @@ from json import loads
 from ._internals import _headerDict, _mediaDict, _parse_content_type
 
 def parse_unicode_value(value, charset='utf-8'):
+    if not isinstance(value, str):
+        return value
     for m in re.findall('((%[0-9a-fA-F]{2})+)', value):
         value = value.replace(m if m is str else m[0], bytearray.fromhex(m[1:] if m is str else m[0].replace('%', '')).decode(charset.lower()), 1)
     return value

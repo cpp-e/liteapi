@@ -1,6 +1,28 @@
 from typing import Union
 
 # Internal Helper Classes
+class _iuList(list):
+    '''Unique case insinsitive list'''
+    _lower = None
+    def __init__(self, Iterable = None):
+        self._lower = []
+        if Iterable:
+            [self._lower.append(i.lower()) for i in Iterable if (isinstance(i, str) and i.lower() not in self._lower)]
+            super().__init__(Iterable)
+        else:
+            super().__init__()
+    def __contains__(self, __o):
+        return self._lower.__contains__(__o.lower())
+    def append(self, __object):
+        if not isinstance(__object, str) or __object.lower() in self._lower:
+            return
+        self._lower.append(__object.lower())
+        super().append(__object)
+    def clear(self):
+        self._lower.clear()
+        super().clear()
+    
+
 class _headerDict(dict):
     _lowerKeys = None
     def __init__(self, *args, **kwargs):

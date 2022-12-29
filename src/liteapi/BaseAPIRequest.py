@@ -96,6 +96,7 @@ class BaseAPIRequest:
     __methods_keys = None
     __uriVars = None
     _hasDoc = True
+    app = None
 
     @property
     def definition(self):

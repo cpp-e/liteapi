@@ -1,5 +1,23 @@
 from test_common import *
-from liteapi._internals import _headerDict, _mediaDict, _params_parser, _parse_content_type
+from liteapi._internals import _iuList, _headerDict, _mediaDict, _params_parser, _parse_content_type
+
+def test_iuList():
+    try:
+        print("Testing _iuList class")
+        test(tryCallable(_iuList), 'Creating _iuList object')
+        myList = _iuList()
+        myList.append("tEst01")
+        myList.append("Test02")
+        myList.append("test02")
+        test('Test01' in myList and 'test02' in myList, 'Checkin content as case insensitive _iuList object')
+        test(len(myList) == 2, 'Check centents of _iuList are unique')
+        test(myList[1] == 'Test02', 'Checking content of _iuList maintain original case')
+        myList2 = _iuList(myList)
+        test('Test01' in myList2 and 'test02' in myList2, 'Checkin content after copy constructor of _iuList object')
+    except:
+        traceback.print_exc()
+        return False
+    return True
 
 def test_headerDict():
     try:
@@ -66,6 +84,7 @@ def test_parse_content_type():
     return True
 
 def all():
+    test(test_iuList(), 'Testing _iuList')
     test(test_headerDict(), 'Testing _headerDict class')
     test(test_mediaDict(), 'Testing _mediaDict class')
     test(test_params_parser(), 'Testing _params_parser function')

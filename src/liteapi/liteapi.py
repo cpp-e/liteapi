@@ -9,6 +9,7 @@ from .http_response import http_response
 from .errno import *
 from .exception import *
 from .docs.docs import _docs
+from ._internals import _iuList
 from . import LITEAPI_SUPPORTED_REQUEST_METHODS
 
 class liteapi:
@@ -34,6 +35,7 @@ class liteapi:
         self.__request = {}
         self.__config = liteapi.__defaultConfig.copy()
         self.__config.update(kwargs)
+        self.__fixedHeaders = _iuList()
         self.__init_socket()
         self.__docs = _docs(self) if 'nodoc' not in kwargs or not kwargs['nodoc'] else None
     def __del__(self):
@@ -121,6 +123,10 @@ class liteapi:
         http_request.extend_supported_content_types(mimetype, parser_function, override, request_property)
     def extend_supported_response_content_types(self, mimetype, parser_function, override = False):
         http_response.extend_supported_content_types(mimetype, parser_function, override)
+    def add_fixed_headers(self, name, *args):
+        self.__fixedHeaders.append(name)
+        for a in args:
+            self.__fixedHeaders.append(a)
     def __handle_client(self, sock, addr):
         BUFF_SIZE = 4096
         request_data = b''
@@ -178,6 +184,9 @@ class liteapi:
             copyRequest.app = self
             copyRequest._BaseAPIRequest__request = request
             copyRequest._BaseAPIRequest__response = http_response()
+            for f in self.__fixedHeaders:
+                if f in request.headers:
+                    copyRequest._BaseAPIRequest__response.headers[request.headers._lowerKeys[f.lower()]] = request.headers[f]
             copyRequest.client_address = addr[0]
             
             response_data = copyRequest.response.getResponse(copyRequest._BaseAPIRequest__methods[request.method if request.method != 'HEAD' else 'GET'](copyRequest, **vars))
@@ -238,3 +247,4 @@ class liteapi:
                 self.__socket = context.wrap_socket(server, server_side=True)
         else:
             self.__socket = server
+        self.__socket.settimeout(1)

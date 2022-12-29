@@ -32,36 +32,55 @@ def doOAuth2TokenAuth(checkerFunc, **kwargs):
     oAuth2TokenAuth._args = kwargs
     return oAuth2TokenAuth
 
-def doOAuth2PassAuth(checkerFunc, **kwargs):
-    def oAuth2PassAuth(self, **kwargs):
-        self.response['Cache-Control'] = 'no-store'
-        if not self.request.form:
-            raise INVALID_REQUEST_ERROR(error_description = 'Wrong Content-Type; expecting application/x-www-form-urlencoded')
-        if 'grant_type' not in self.request.form or self.request.form['grant_type'] != 'password':
-            raise UNSUPPORTED_GRANT_TYPE(error_description = 'Unknown grant_type')
-        if 'Authorization' not in self.request.headers and ('username' not in self.request.form or 'password' not in self.request.form):
-            raise INVALID_REQUEST_ERROR(error_description =  'Missing Credentials')
-        params = {
-            'client_id': self.request.form['client_id'] if 'client_id' in self.request.form else '',
-            'client_secret': self.request.form['client_secret'] if 'client_secret' in self.request.form else '',
-            'scope': self.request.form['scope'] if 'scope' in self.request.form else '',
-            'username': self.request.form['username'],
-            'password': self.request.form['password']
-        }
-        if 'Authorization' in self.request.headers and isinstance(self.request.headers['Authorization'], str):
-            m = fullmatch('Basic ((?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?)', self.request.headers['Authorization'])
-            if not m:
-                raise INVALID_CLIENT_ERROR(error_description = 'Invalid Client Credentials')
-            cred = b64decode(m[1]).decode('utf-8').split(':')
-            params['client_id'] = cred[0]
-            params['client_secret'] = cred[1]
-        if not checkerFunc(**{k:v for k,v in params.items() if k in signature(checkerFunc).parameters}):
-            raise INVALID_GRANT_ERROR(error_description = 'Invalid Credentials')
-        return {k:v for k,v in params.items() if k in ('client_id', 'scope', 'username')}
-    oAuth2PassAuth.__name__ = 'OAuth2'
-    oAuth2PassAuth._checker = checkerFunc
-    oAuth2PassAuth._args = kwargs
-    return oAuth2PassAuth
+def doOAuth2FormAuth(grant_types=('client_credentials', 'authorization_code', 'password', 'refresh_token')):
+    def inner(checkerFunc, **kwargs):
+        def oAuth2FormAuth(self, **kwargs):
+            self.response['Cache-Control'] = 'no-store'
+            if not self.request.form:
+                raise INVALID_REQUEST_ERROR(error_description = 'Wrong Content-Type; expecting application/x-www-form-urlencoded')
+            if 'grant_type' not in self.request.form or self.request.form['grant_type'] not in grant_types:
+                raise UNSUPPORTED_GRANT_TYPE(error_description = 'Unsupported grant_type')
+            grant_type = self.request.form['grant_type']
+            params = {
+                'client_id': self.request.form['client_id'] if 'client_id' in self.request.form else '',
+                'client_secret': self.request.form['client_secret'] if 'client_secret' in self.request.form else ''
+            }
+            if 'Authorization' in self.request.headers and isinstance(self.request.headers['Authorization'], str):
+                m = fullmatch('[Bb][Aa][Ss][Ii][Cc] ((?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?)', self.request.headers['Authorization'])
+                if not m:
+                    raise INVALID_CLIENT_ERROR(error_description = 'Invalid Client Credentials')
+                cred = b64decode(m[1]).decode('utf-8').split(':')
+                params['client_id'] = cred[0]
+                params['client_secret'] = cred[1]
+            if grant_type == 'refresh_token':
+                if 'refresh_token' not in self.request.form:
+                    raise INVALID_REQUEST_ERROR(error_description =  'Missing refresh_token')
+                params['refresh_token'] = self.request.form['refresh_token']
+            elif grant_type in ('client_credentials', 'password'):
+                params['scope'] = self.request.form['scope'] if 'scope' in self.request.form else ''
+                if grant_type == 'password':
+                    if 'Authorization' not in self.request.headers and ('username' not in self.request.form or 'password' not in self.request.form):
+                        raise INVALID_REQUEST_ERROR(error_description =  'Missing Credentials')
+                    params['username'] = self.request.form['username']
+                    params['password'] = self.request.form['password']
+                elif params['client_id'] == '' or params['client_secret'] == '':
+                    raise INVALID_REQUEST_ERROR(error_description =  'Missing Client Credentials')
+            elif grant_type == 'authorization_code':
+                if 'code' not in self.request.form:
+                    raise INVALID_REQUEST_ERROR(error_description =  'Missing Authorization Code')
+                params['code'] = self.request.form['code']
+                params['redirect_uri'] = self.request.form['redirect_uri'] if 'redirect_uri' in self.request.form else ''
+            if not checkerFunc(**{k:v for k,v in params.items() if k in signature(checkerFunc).parameters}):
+                raise INVALID_GRANT_ERROR(error_description = 'Invalid Credentials')
+            return {k:v for k,v in params.items() if k in ('client_id', 'scope', 'username', 'code', 'redirect_uri')}
+        oAuth2FormAuth.__name__ = 'OAuth2Form'
+        oAuth2FormAuth._checker = checkerFunc
+        oAuth2FormAuth._args = kwargs
+        return oAuth2FormAuth
+    return inner
 
 RequireOAuth2Token = RequireAuth(doOAuth2TokenAuth)
-RequireOAuth2PasswordAuth = RequireAuth(doOAuth2PassAuth)
+RequireOAuth2FormAuth = RequireAuth(doOAuth2FormAuth())
+RequireOAuth2PasswordAuth = RequireAuth(doOAuth2FormAuth(('password','refresh_token')))
+RequireOAuth2CodeAuth = RequireAuth(doOAuth2FormAuth(('authorization_code','refresh_token')))
+RequireOAuth2ClientAuth = RequireAuth(doOAuth2FormAuth(('client_credentials','refresh_token')))
