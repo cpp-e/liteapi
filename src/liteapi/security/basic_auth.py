@@ -12,7 +12,7 @@ def doBasicAuth(checkerFunc, **kwargs):
             raise UNAUTHORIZED_ERROR({'WWW-Authenticate': '{}{}'.format(AUTH_SCHEME, realm)})
         m = None
         if isinstance(self.request.headers['Authorization'], str):
-            m = fullmatch('Basic ((?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?)', self.request.headers['Authorization'])
+            m = fullmatch('[Bb][Aa][Ss][Ii][Cc] ((?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?)', self.request.headers['Authorization'])
         if not m:
             raise UNAUTHORIZED_ERROR({'WWW-Authenticate': '{}{}'.format(AUTH_SCHEME, realm)})
         cred = b64decode(m[1]).decode('utf-8').split(':')

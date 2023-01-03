@@ -1,5 +1,5 @@
-from .. import LITEAPI_SUPPORTED_REQUEST_METHODS, BaseAPIRequest
-from ..BaseAPIRequest import APIMethod
+from .. import LITEAPI_SUPPORTED_REQUEST_METHODS
+from ..BaseAPIRequest import BaseAPIRequest,APIMethod
 
 def RequireAuth(authFunc):
     def AuthFunction(checkerFunc, **kwargs):

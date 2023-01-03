@@ -1,20 +1,7 @@
 from inspect import signature
 import re
 from json import loads
-from ._internals import _headerDict, _mediaDict, _parse_content_type
-
-def parse_unicode_value(value, charset='utf-8'):
-    if not isinstance(value, str):
-        return value
-    for m in re.findall('((%[0-9a-fA-F]{2})+)', value):
-        value = value.replace(m if m is str else m[0], bytearray.fromhex(m[1:] if m is str else m[0].replace('%', '')).decode(charset.lower()), 1)
-    return value
-
-def parse_unicode_fields(name, value):
-    if name[-1] != '*':
-        return name, value
-    res = re.split("'.*'", value)
-    return name[:-1], parse_unicode_value(res[1], res[0])
+from ._internals import _headerDict, _mediaDict, _parse_content_type, _parse_unicode_value
 
 def _getASCIIToDelim(data, delim, startfrom = 0):
         i = data.find(delim, startfrom)
@@ -29,10 +16,10 @@ def _application_x_www_form_urlencoded(data):
     for f in fs:
         try:
             var, val = f.split('=', maxsplit=1)
-            val = parse_unicode_value(val)
+            val = _parse_unicode_value(val)
         except:
             var, val = f, None
-        var = parse_unicode_value(var)
+        var = _parse_unicode_value(var)
         isArray = var.find('[]')
         if isArray > 0:
             var = var[:isArray]
@@ -101,10 +88,10 @@ class http_request:
             for q in qs:
                 try:
                     var, val = q.split('=', maxsplit=1)
-                    val = parse_unicode_value(val)
+                    val = _parse_unicode_value(val)
                 except:
                     var, val = q, None
-                var = parse_unicode_value(var)
+                var = _parse_unicode_value(var)
                 isArray = var.find('[]')
                 if isArray > 0:
                     var = var[:isArray]
@@ -153,9 +140,19 @@ class http_request:
     def method(self):
         return self.__method
     
+    @method.setter
+    def method(self, value):
+        self.__method = value.upper()
+    
     @property
     def uri(self):
         return self.__uri
+    
+    @uri.setter
+    def uri(self, uri):
+        hasQuery = uri.find('?')
+        self.__uri = uri
+        self.__base_uri = uri[:hasQuery] if hasQuery > 0 else uri
     
     @property
     def base_uri(self):

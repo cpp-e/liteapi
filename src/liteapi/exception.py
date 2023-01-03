@@ -1,4 +1,4 @@
-from .errno import *
+from .error_no import *
 from ._internals import _headerDict
 
 class APIException(Exception):

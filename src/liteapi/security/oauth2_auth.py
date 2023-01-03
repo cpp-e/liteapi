@@ -1,12 +1,13 @@
-from re import IGNORECASE, fullmatch, match
+from re import IGNORECASE, fullmatch, match, sub
 from base64 import b64decode
 from inspect import signature
 from .base_auth import RequireAuth
 from .exception import *
 
-def doOAuth2TokenAuth(checkerFunc, **kwargs):
+def doOAuth2TokenAuth(checkerFunc, token_url, **kwargs):
     scope = kwargs['scope'] if 'scope' in kwargs else None
     realm = kwargs['realm'] if 'realm' in kwargs else None
+    kwargs['token_url'] = token_url
     def oAuth2TokenAuth(self, **kwargs):
         self.response['Cache-Control'] = 'no-store'
         params = {}

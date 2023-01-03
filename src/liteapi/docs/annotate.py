@@ -44,7 +44,6 @@ class AnnotationClass:
         return self._name
     def __call__(self, cls, doc = None, example = None):
         return _GenericAnnonateAlias(self, cls, doc, example)
-    
 
 Annotate = AnnotationClass('Annotate')
 

@@ -1,13 +1,13 @@
 Metadata-Version: 2.1
 Name: liteapi
-Version: 0.4.2
+Version: 0.5.0
 Summary: Lite python API framework
 Author-email: Kamal Abdel Wahab <kamal.abdelwahab@gmail.com>
 License: GNU General Public License v3 (GPLv3)
 Project-URL: Homepage, https://github.com/cpp-e/liteapi
 Project-URL: Bug Tracker, https://github.com/cpp-e/liteapi/issues
 Keywords: liteapi,lite,api,framework,python
-Classifier: Development Status :: 3 - Alpha
+Classifier: Development Status :: 4 - Beta
 Classifier: Environment :: Web Environment
 Classifier: Intended Audience :: Developers
 Classifier: Programming Language :: Python

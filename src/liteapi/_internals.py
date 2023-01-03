@@ -1,4 +1,5 @@
 from typing import Union
+import re
 
 # Internal Helper Classes
 class _iuList(list):
@@ -74,6 +75,19 @@ class _mediaDict(dict):
 
 # Internal Helper Methods
 
+def _parse_unicode_value(value, charset='utf-8'):
+    if not isinstance(value, str):
+        return value
+    for m in re.findall('((%[0-9a-fA-F]{2})+)', value):
+        value = value.replace(m if m is str else m[0], bytearray.fromhex(m[1:] if m is str else m[0].replace('%', '')).decode(charset.lower()), 1)
+    return value
+
+def _parse_unicode_fields(name, value):
+    if name[-1] != '*':
+        return name, value
+    res = re.split("'.*'", value)
+    return name[:-1], _parse_unicode_value(res[1], res[0])
+
 def _params_parser(arr):
     return {k.strip():v.strip() for k,v in [i.split('=', maxsplit=1) for i in arr]}
 
@@ -124,3 +138,16 @@ def _repr(obj):
 
 def _isinstance(obj, cls):
     return isinstance(obj, cls.__args__) if _isUnion(cls) else isinstance(obj, cls)
+
+def _build_url(request, path):
+    if not re.match(r'https?://', path):
+        orig = f'{request.protocol}://{request.host}:{request.port}'
+        if path[0] == '/':
+            path = f'{orig}path'
+        else:
+            path = f'{request.base_uri[:request.base_uri.rfind("/")]}/{path}'
+            path = re.sub(r'/\.?/', r'/', path)
+            while(path.find('/../') != -1):
+                path = re.sub(r'/[^/]*/\.\./', '/', path)
+            path = f'{orig}{path}'
+    return path

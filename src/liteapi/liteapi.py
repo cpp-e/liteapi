@@ -4,19 +4,19 @@ from signal import signal, SIGINT, SIGTERM
 from datetime import datetime
 from time import time
 from .BaseAPIRequest import BaseAPIRequest, APIMethod
-from .http_request import http_request, parse_unicode_value
+from .http_request import http_request
 from .http_response import http_response
-from .errno import *
+from .error_no import *
 from .exception import *
 from .docs.docs import _docs
-from ._internals import _iuList
+from ._internals import _iuList, _parse_unicode_value
 from . import LITEAPI_SUPPORTED_REQUEST_METHODS
 
 class liteapi:
     class __version:
         MAJOR = 0
-        MINOR = 4
-        PATCH = 2
+        MINOR = 5
+        PATCH = 0
         
         def __str__(self):
             return str("{}.{}.{}".format(self.MAJOR, self.MINOR, self.PATCH))
@@ -173,7 +173,7 @@ class liteapi:
                     else:
                         var_keys = [k for k in self.__request[uriRegex]._BaseAPIRequest__uriVars.keys()]
                         for i in range(len(self.__request[uriRegex]._BaseAPIRequest__uriVars)):
-                            vars[var_keys[i]] = parse_unicode_value(self.__request[uriRegex]._BaseAPIRequest__uriVars[var_keys[i]](ms[i + 1]))
+                            vars[var_keys[i]] = _parse_unicode_value(self.__request[uriRegex]._BaseAPIRequest__uriVars[var_keys[i]](ms[i + 1]))
                     break
             if not found:
                 raise APIException(NOT_FOUND)
