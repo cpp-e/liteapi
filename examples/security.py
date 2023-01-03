@@ -17,7 +17,7 @@ class rootMethod (BaseAPIRequest):
 
 @app.register('/OAuth')
 class rootMethod (BaseAPIRequest):
-    @RequireOAuth2Token(checkerFunc=lambda access_token: access_token == 'mytoken')
+    @RequireOAuth2Token(checkerFunc=lambda access_token: access_token == 'mytoken', token_url='token')
     def get(self):
         return {'message': f'Thank you for using liteapi'}
 
