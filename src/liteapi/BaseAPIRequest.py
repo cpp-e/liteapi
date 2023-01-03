@@ -90,6 +90,7 @@ class APIMethod:
 
 class BaseAPIRequest:
     __definition = None
+    __regex = None
     __request = None
     __response = None
     __methods = None
@@ -101,6 +102,10 @@ class BaseAPIRequest:
     @property
     def definition(self):
         return self.__definition
+    
+    @property
+    def regex(self):
+        return self.__regex
 
     @property
     def request(self):

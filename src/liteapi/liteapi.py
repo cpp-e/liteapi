@@ -16,7 +16,7 @@ class liteapi:
     class __version:
         MAJOR = 0
         MINOR = 5
-        PATCH = 0
+        PATCH = 1
         
         def __str__(self):
             return str("{}.{}.{}".format(self.MAJOR, self.MINOR, self.PATCH))
@@ -70,7 +70,8 @@ class liteapi:
                 raise RuntimeError('{} must be a subclass of BaseAPIRequest'.format((requestClass).__name__))
             hasQuery = uri.find('?')
             regex = uri[:hasQuery] if hasQuery > 0 else uri
-            requestClass._BaseAPIRequest__definition = re.sub('{([^:}]+):(str|int|float|path)}', r'{\1}', regex)
+            definition = re.sub('{([^:}]+):(str|int|float|path)}', r'{\1}', regex)
+            requestClass._BaseAPIRequest__definition = definition
             if not requestClass._BaseAPIRequest__methods:
                 requestClass._BaseAPIRequest__methods = {}
             if not requestClass._BaseAPIRequest__methods_keys:
@@ -97,6 +98,7 @@ class liteapi:
                     if m[1] not in requestClass._BaseAPIRequest__uriVars:
                         requestClass._BaseAPIRequest__uriVars[m[1]] = str
                 regex = regex.replace('{{{}}}'.format(m[0]), '([0-9]+)' if m[3] == 'int' else '([^/?&]+?)')
+            requestClass._BaseAPIRequest__regex = regex
 
             for methodnam in LITEAPI_SUPPORTED_REQUEST_METHODS:
                 if methodnam.lower() in dir(requestClass):
@@ -115,7 +117,7 @@ class liteapi:
                     setattr(requestClass, methodnam.lower(), method)
                     requestClass._BaseAPIRequest__methods_keys.append(methodnam)
 
-            self.__request[regex] = requestClass
+            self.__request[definition] = requestClass
             if(requestClass._hasDoc):
                 print(f'API {requestClass._BaseAPIRequest__definition} is registered')
         return inner
@@ -163,24 +165,24 @@ class liteapi:
             request._http_request__protocol = f'http{"s" if self.__ssl else ""}'
             request._http_request__host = self.__config['host']
             request._http_request__port = self.__config['port']
-            found, uriRegex, vars = False, None, {}
-            for uriRegex in self.__request:
-                ms = re.fullmatch(uriRegex, request.base_uri)
+            found, definition, vars = False, None, {}
+            for definition in self.__request:
+                ms = re.fullmatch(self.__request[definition]._BaseAPIRequest__regex, request.base_uri)
                 if ms:
                     found = True
-                    if request.method not in self.__request[uriRegex]._BaseAPIRequest__methods and (request.method != 'HEAD' or (request.method == 'HEAD' and 'GET' not in self.__request[uriRegex]._BaseAPIRequest__methods)):
+                    if request.method not in self.__request[definition]._BaseAPIRequest__methods and (request.method != 'HEAD' or (request.method == 'HEAD' and 'GET' not in self.__request[definition]._BaseAPIRequest__methods)):
                         raise APIException(NOT_IMPLEMENTED)
                     else:
-                        var_keys = [k for k in self.__request[uriRegex]._BaseAPIRequest__uriVars.keys()]
-                        for i in range(len(self.__request[uriRegex]._BaseAPIRequest__uriVars)):
-                            vars[var_keys[i]] = _parse_unicode_value(self.__request[uriRegex]._BaseAPIRequest__uriVars[var_keys[i]](ms[i + 1]))
+                        var_keys = [k for k in self.__request[definition]._BaseAPIRequest__uriVars.keys()]
+                        for i in range(len(self.__request[definition]._BaseAPIRequest__uriVars)):
+                            vars[var_keys[i]] = _parse_unicode_value(self.__request[definition]._BaseAPIRequest__uriVars[var_keys[i]](ms[i + 1]))
                     break
             if not found:
                 raise APIException(NOT_FOUND)
             
             request.parseData()
 
-            copyRequest = self.__request[uriRegex]()
+            copyRequest = self.__request[definition]()
             copyRequest.app = self
             copyRequest._BaseAPIRequest__request = request
             copyRequest._BaseAPIRequest__response = http_response()
