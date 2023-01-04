@@ -5,4 +5,5 @@
 3. [Getting Started](getting_started.md)
 4. [Examples](examples.md)
 5. Advanced Topics
-    1. [Extending Mime Types](extending_mime_types.md) 
+    1. [Extending Mime Types](extending_mime_types.md)
+    2. [Handling Errors](handling_errors.md)
