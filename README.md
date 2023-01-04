@@ -75,5 +75,8 @@ class tenantMethod (BaseAPIRequest):
         return {'method': 'Delete', 'tenant': tenant, 'json': self.request.json}
 ```
 
+## Documentaion
+[Click Here](https://github.com/cpp-e/liteapi/blob/main/docs/index.md) to access the documentation
+
 ## License
 This project is licensed under the terms of GPL-3.0 license.
