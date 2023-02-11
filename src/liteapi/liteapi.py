@@ -64,8 +64,9 @@ class liteapi:
                 thread.start()
             except:
                 pass
-    def register(self, uri):
+    def register(self, uri, section='default'):
         def inner(requestClass):
+            requestClass.section = section
             if not issubclass(requestClass, BaseAPIRequest):
                 raise RuntimeError('{} must be a subclass of BaseAPIRequest'.format((requestClass).__name__))
             hasQuery = uri.find('?')
@@ -160,7 +161,7 @@ class liteapi:
         try:
             if request.version != 'HTTP/1.1':
                 raise APIException(HTTP_VERSION_NOT_SUPPORTED)
-            if request.method not in self.__supportedMethods:
+            if request.method not in (*self.__supportedMethods, 'HEAD', 'OPTIONS'):
                 raise APIException(METHOD_NOT_ALLOWED)
             request._http_request__protocol = f'http{"s" if self.__ssl else ""}'
             request._http_request__host = self.__config['host']

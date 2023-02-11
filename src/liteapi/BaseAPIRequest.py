@@ -98,6 +98,7 @@ class BaseAPIRequest:
     __uriVars = None
     _hasDoc = True
     app = None
+    section = "default"
 
     @property
     def definition(self):
