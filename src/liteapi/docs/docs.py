@@ -146,7 +146,14 @@ class _docFetch(BaseAPIRequest):
                 req.add_header(header, json['headers'][header])
         ret = {}
         try:
-            opener = urlreq.build_opener()
+            opener = None
+            if self.request.protocol == 'https':
+                from ssl import SSLContext, PROTOCOL_TLS_CLIENT
+                ctx = SSLContext(PROTOCOL_TLS_CLIENT)
+                ctx.load_verify_locations(self.app._liteapi__config['ssl_certfile'])
+                opener = urlreq.build_opener(urlreq.HTTPSHandler(context=ctx))
+            else:
+                opener = urlreq.build_opener()
             if 'auth' in json:
                 _doAuth[json['auth']['args']['authtype']]['opener'](opener, req, json['auth'])
             with opener.open(req) as f:
