@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: liteapi
-Version: 0.5.1
+Version: 0.5.2
 Summary: Lite python API framework
 Author-email: Kamal Abdel Wahab <kamal.abdelwahab@gmail.com>
 License: GNU General Public License v3 (GPLv3)
@@ -106,6 +106,9 @@ class tenantMethod (BaseAPIRequest):
     def delete(self, tenant):
         return {'method': 'Delete', 'tenant': tenant, 'json': self.request.json}
 ```
+
+## Documentaion
+[Click Here](https://github.com/cpp-e/liteapi/blob/main/docs/index.md) to access the documentation
 
 ## License
 This project is licensed under the terms of GPL-3.0 license.

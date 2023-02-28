@@ -26,3 +26,6 @@ src/liteapi/security/oauth2_auth.py
 src/liteapi/verifiers/__init__.py
 src/liteapi/verifiers/exception.py
 src/liteapi/verifiers/verifiers.py
+tests/test_Internals.py
+tests/test_auth_internals.py
+tests/test_common.py
