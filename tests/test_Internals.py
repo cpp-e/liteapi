@@ -9,11 +9,13 @@ def test_iuList():
         myList.append("tEst01")
         myList.append("Test02")
         myList.append("test02")
-        test('Test01' in myList and 'test02' in myList, 'Checkin content as case insensitive _iuList object')
+        test('Test01' in myList and 'test02' in myList, 'Checking content as case insensitive _iuList object')
         test(len(myList) == 2, 'Check centents of _iuList are unique')
         test(myList[1] == 'Test02', 'Checking content of _iuList maintain original case')
         myList2 = _iuList(myList)
-        test('Test01' in myList2 and 'test02' in myList2, 'Checkin content after copy constructor of _iuList object')
+        test('Test01' in myList2 and 'test02' in myList2, 'Checking content after copy constructor of _iuList object')
+        myList3 = _iuList(['test1', 'teST1', 'test2'])
+        test(len(myList2) == 2, 'Checking if constructor removes duplication')
     except:
         traceback.print_exc()
         return False
@@ -24,9 +26,9 @@ def test_headerDict():
         print("Testing _headerDict class")
         test(tryCallable(_headerDict), 'Creating _headerDict object')
         myDict = _headerDict()
-        test(hasattr(myDict, '_lowerKeys') and isinstance(myDict._lowerKeys, dict), 'Cheking _headerDict object init')
+        test(hasattr(myDict, '_lowerKeys') and isinstance(myDict._lowerKeys, dict), 'Checking _headerDict object init')
         myDict['Key1'] = 'value'
-        test('key1' in myDict and 'KeY1' in myDict, 'Checkin key as case insensitive _headerDict object')
+        test('key1' in myDict and 'KeY1' in myDict, 'Checking key as case insensitive _headerDict object')
         test([*myDict.keys()][0] == 'Key1', 'Actual key name maintained under _headerDict object')
         myDict.update({'keY1': 'value', 'Key2': 'value'})
         test(len(myDict) == 2, 'Updating _headerDict object')
@@ -51,11 +53,11 @@ def test_mediaDict():
         myDict = _mediaDict()
         test(tryFailCallable(myDict.__setitem__, 'test', 'value'), 'Exceprion raised for setting Invalid key for _mediaDict object')
         test(tryCallable(myDict.__setitem__, 'text/plain', 'value'), 'Setting valid media type format for _mediaDict object')
-        test('test/javascript' not in myDict, 'Cheking for undefined mediatype in _mediaDict object')
+        test('test/javascript' not in myDict, 'Checking for undefined mediatype in _mediaDict object')
         myDict['text/*'] = 'text*'
-        test('text/css' in myDict and myDict['text/css'] == 'text*', 'Cheking for if text/css will get text/* media type in _mediaDict object')
+        test('text/css' in myDict and myDict['text/css'] == 'text*', 'Checking for if text/css will get text/* media type in _mediaDict object')
         myDict['*/*'] = '**'
-        test('application/json' in myDict and myDict['application/json'] == '**', 'Cheking for if application/json will get */* media type in _mediaDict object')
+        test('application/json' in myDict and myDict['application/json'] == '**', 'Checking for if application/json will get */* media type in _mediaDict object')
     except:
         traceback.print_exc()
         return False

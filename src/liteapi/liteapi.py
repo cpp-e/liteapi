@@ -9,14 +9,14 @@ from .http_response import http_response
 from .error_no import *
 from .exception import *
 from .docs.docs import _docs
-from ._internals import _iuList, _parse_unicode_value
+from ._internals import _iuList, _parse_unicode_value, _init_internals, _custom_calls
 from . import LITEAPI_SUPPORTED_REQUEST_METHODS
 
 class liteapi:
     class __version:
         MAJOR = 0
         MINOR = 5
-        PATCH = 2
+        PATCH = 3
         
         def __str__(self):
             return str("{}.{}.{}".format(self.MAJOR, self.MINOR, self.PATCH))
@@ -31,6 +31,7 @@ class liteapi:
         'port': 8000
     }
     def __init__(self, **kwargs):
+        _init_internals(**{k:v for k,v in kwargs.items() if k in ('nostd', 'noexpstd', 'noapistd', 'noreqstd')})
         self.__ssl = False
         self.__request = {}
         self.__config = liteapi.__defaultConfig.copy()
@@ -41,7 +42,7 @@ class liteapi:
     def __del__(self):
         self.close()
     def close(self):
-        print("Closing API server")
+        _custom_calls._api_print("Closing API server")
         self.__running = False
         if '_liteapi__socket' in dir(self):
             try:
@@ -54,8 +55,8 @@ class liteapi:
         self.__running = True
         if(self.__docs):
             self.__docs.build()
-        print("""API Server started on URL:
-        http{}://{}:{}""".format('s' if self.__ssl else '', self.__config['host'], self.__config['port']))
+        _custom_calls._api_print("""API Server started on URL:
+        http{}://127.0.0.1:{}""".format('s' if self.__ssl else '', self.__config['port']))
         while self.__running:
             try:
                 conn, addr = self.__socket.accept()
@@ -120,7 +121,7 @@ class liteapi:
 
             self.__request[definition] = requestClass
             if(requestClass._hasDoc):
-                print(f'API {requestClass._BaseAPIRequest__definition} is registered')
+                _custom_calls._api_print(f'API {requestClass._BaseAPIRequest__definition} is registered')
         return inner
     def extend_supported_request_content_types(self, mimetype, parser_function, override = False, request_property = 'obj'):
         http_request.extend_supported_content_types(mimetype, parser_function, override, request_property)
@@ -212,22 +213,22 @@ class liteapi:
             response = http_response()
             response_data = response.getResponse(RETURN_STATUS_OBJ(response_code))
             response_header = response.responseHeader
-            print(e)
+            _custom_calls._exp_print(e)
         
         response_bytes = response_format.format(response_status, len(response_data), response_header).encode()
         if(request.method != 'HEAD'):
             response_bytes += response_data
         sock.sendall(response_bytes)
         response_time = round(time() - stime, 5)
-        print("{} - Request from {}: {} {} {}, {}{}\033[0m, {}s".format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), addr[0], request.method, request.uri, request.version, '\033[92m' if response_code >= 200 and response_code < 300 else '\033[91m' if response_code >=400 else '',RETURN_STATUS(response_code), response_time))
+        _custom_calls._req_print("{} - Request from {}: {} {} {}, {}{}\033[0m, {}s".format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), addr[0], request.method, request.uri, request.version, '\033[92m' if response_code >= 200 and response_code < 300 else '\033[91m' if response_code >=400 else '',RETURN_STATUS(response_code), response_time))
         sock.shutdown(socket.SHUT_WR)
         sock.close()
     def __handle_signal(self, signum, frame):
         if signum == SIGINT:
-            print('Received Ctrl+C signal')
+            _custom_calls._api_print('Received Ctrl+C signal')
             self.__running = False
         if signum == SIGTERM:
-            print('Process Killed')
+            _custom_calls._api_print('Process Killed')
             self.__running = False
     def __init_socket(self):
         server = socket.socket()

@@ -4,7 +4,7 @@ from ..security.digest_auth import digest
 from ..BaseAPIRequest import BaseAPIRequest
 from ..APIModel import APIModel
 from .annotate import isAnnotate
-from .._internals import _repr, _isUnion, _parse_unicode_fields, _build_url
+from .._internals import _repr, _isUnion, _parse_unicode_fields, _build_url, _custom_calls
 from ..verifiers.verifiers import isVerifierClass
 from ..exception import APIException
 import urllib.request as urlreq
@@ -201,7 +201,7 @@ class _docs:
                 return self._html
 
     def build(self):
-        print("Building REST API Documentation page...")
+        _custom_calls._api_print("Building REST API Documentation page...")
         sections = {s:{k:v for k,v in self.__app._liteapi__request.items() if self.__app._liteapi__request[k].section == s} for s in (self.__app._liteapi__request[r].section for r in self.__app._liteapi__request)}
         
         self.__doc+='<ul class="sections">'
@@ -215,8 +215,8 @@ class _docs:
                         self.__doc += self.__addMethods(sections[section][r])
                 self.__doc+='</ul></div></li>'
         self.__doc += '</ul><div class="authbox nodisplay"><div class="args"></div><input type="hidden" id="formdata" name="formdata"><input type="hidden" id="responsedata" name="responsedata"></div><script src="doc/script/main.js"></script></body></html>'
-        print("""Documentation building completed:
-        http{}://{}:{}/doc""".format('s' if self.__app._liteapi__ssl else '', self.__app._liteapi__config['host'], self.__app._liteapi__config['port']))
+        _custom_calls._api_print("""Documentation building completed:
+        http{}://127.0.0.1:{}/doc""".format('s' if self.__app._liteapi__ssl else '', self.__app._liteapi__config['port']))
 
     def __getDescription(self, method):
         if not method.__doc__:

@@ -7,11 +7,11 @@ class _iuList(list):
     _lower = None
     def __init__(self, Iterable = None):
         self._lower = []
+        super().__init__()
         if Iterable:
-            [self._lower.append(i.lower()) for i in Iterable if (isinstance(i, str) and i.lower() not in self._lower)]
-            super().__init__(Iterable)
-        else:
-            super().__init__()
+            for item in Iterable:
+                if isinstance(item, str) and item.lower() not in self._lower:
+                    self.append(item)
     def __contains__(self, __o):
         return self._lower.__contains__(__o.lower())
     def append(self, __object):
@@ -22,6 +22,10 @@ class _iuList(list):
     def clear(self):
         self._lower.clear()
         super().clear()
+    def extend(self, __iterable):
+        for item in __iterable:
+                if isinstance(item, str) and item.lower() not in self._lower:
+                    self.append(item)
     
 
 class _headerDict(dict):
@@ -74,6 +78,17 @@ class _mediaDict(dict):
         super().__delitem__(__key.lower())
 
 # Internal Helper Methods
+class _custom_calls:
+    _std_print = None
+    _exp_print = None
+    _api_print = None
+    _req_print = None
+
+def _init_internals(**kwargs):
+    _custom_calls._std_print = print if 'nostd' not in kwargs or not kwargs['nostd'] else lambda *args,**kwargs: None
+    _custom_calls._exp_print = _custom_calls._std_print if 'noexpstd' not in kwargs or not kwargs['noexpstd'] else lambda *args,**kwargs: None
+    _custom_calls._api_print = _custom_calls._std_print if 'noapistd' not in kwargs or not kwargs['noapistd'] else lambda *args,**kwargs: None
+    _custom_calls._req_print = _custom_calls._std_print if 'noreqstd' not in kwargs or not kwargs['noreqstd'] else lambda *args,**kwargs: None
 
 def _parse_unicode_value(value, charset='utf-8'):
     if not isinstance(value, str):

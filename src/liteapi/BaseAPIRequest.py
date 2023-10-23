@@ -2,6 +2,7 @@ from inspect import signature
 from .verifiers.exception import *
 from .APIModel import APIModel
 from re import search, sub
+from ._internals import _custom_calls
 
 class APIAuth:
     '''
@@ -69,7 +70,7 @@ class APIMethod:
                 try:
                     nkwargs[arg] = methodArgs[arg].annotation(args[0].request.obj)
                 except Exception as e:
-                    print(str(e))
+                    _custom_calls._exp_print(str(e))
                     raise BAD_REQUEST_ERROR(error="Invalid Data", error_description=str(e))
         returned = self.methodFunc(*args, **nkwargs)
         returnCode = None
